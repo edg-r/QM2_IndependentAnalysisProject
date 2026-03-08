@@ -36,7 +36,51 @@ Possible thesis sentence:
 
 The current results suggest a strong positive cross-sectional association between authoritarian regime type and Chinese aid receipts, but that relationship weakens once the analysis relies on within-country over-time variation, which cautions against a strong causal claim.
 
-### 2. Theory and Hypotheses
+### 2. Background and Literature Anchor
+
+Target length: `250-350` words
+
+Core job of this section:
+- Situate the project in the academic literature on aid allocation.
+- Show why political similarity between donor and recipient is a plausible mechanism.
+- Establish that China itself sits on the authoritarian end of standard democracy measures.
+
+Background logic to develop:
+- The broad aid-allocation literature argues that donor governments do not allocate aid on need alone; they also respond to strategic and political considerations.
+- A natural extension of that literature is that donors may prefer governments that are politically or ideologically closer to themselves, because similarity reduces bargaining friction, increases trust, and makes policy coordination easier.
+- For China specifically, that mechanism is plausible if Chinese state financing is more compatible with centralized, less politically constrained governments.
+
+Academic sources you can use in this section:
+- `Alesina and Dollar (2000), Journal of Economic Growth`: a foundational aid-allocation study showing that foreign aid is shaped by political and strategic relationships, not just poverty or development need. Link: <https://doi.org/10.1023/A:1009874203400>
+- `Lskavyan (2021), Journal of International Development`: finds that larger donor-recipient ideological differences are associated with lower aid flows, which gives you a direct academic basis for the similarity argument. Link: <https://doi.org/10.1002/jid.3579>
+- `Heurlin (2024), British Journal of Political Science`: develops the idea of `institutional complementarity`, arguing that aid from authoritarian donors can be especially compatible with authoritarian recipient institutions. Link: <https://doi.org/10.1017/S0007123423000503>
+- `Lührmann, Tannenberg, and Lindberg (2018), Democratization`: introduces the `Regimes of the World` framework used to classify countries as closed autocracies, electoral autocracies, electoral democracies, or liberal democracies. Link: <https://doi.org/10.1080/13510347.2018.1453063>
+- `V-Dem Institute, Democracy Report 2025`: the latest V-Dem report classifies China as a `closed autocracy`, which is consistent with the measure used in your project. Link: <https://www.v-dem.net/documents/55/v-dem_dr2025_lowres.pdf>
+
+Point to make explicitly about China:
+- In your own OWID file, China is coded `0` on `political-regime` for every year from `2013` through `2021`.
+- Under the `Regimes of the World` coding used by OWID, `0` corresponds to `closed autocracy`.
+- That means the project is not merely assuming China is authoritarian; it is using a standard academic democracy classification that places China at the most authoritarian end of the four-category regime scale.
+
+Possible paragraph structure:
+
+Paragraph 1:
+
+Start from the general aid literature. Explain that donors often use aid to pursue political or strategic goals, so aid allocation is not expected to be politically neutral.
+
+Paragraph 2:
+
+Introduce the similarity mechanism. Explain that governments may direct aid toward politically similar partners because shared governing styles, lower transparency demands, and more compatible state institutions can reduce transaction costs and make large projects easier to negotiate and implement.
+
+Paragraph 3:
+
+Connect that logic to China directly. Note that China is classified as a closed autocracy in the V-Dem framework and is coded as such in the same democracy variable used in your analysis, which makes the expectation of authoritarian-affinity in aid allocation theoretically plausible.
+
+Possible reusable language:
+
+Existing scholarship shows that aid allocation reflects donor interests as well as recipient need. Building on that insight, ideological and institutional similarity between donor and recipient governments may shape aid flows because politically similar partners face fewer conflicts over governance standards, monitoring, and project implementation. This logic is especially relevant for China, which leading academic democracy datasets classify as a closed autocracy.
+
+### 3. Theory and Hypotheses
 
 Target length: `200-250` words
 
@@ -54,7 +98,13 @@ Suggested hypotheses:
 - `H1:` More authoritarian countries receive more Chinese aid.
 - `H2:` The estimated relationship should shrink after adding controls for income, corruption, poverty, and inequality if part of the bivariate relationship is due to confounding.
 
-### 3. Data and Variable Construction
+Additional theory sentences you can use:
+
+- If donor and recipient governments are institutionally similar, they may find it easier to cooperate on large state-led projects because they have more compatible expectations about bargaining, oversight, and conditionality.
+- If China is less likely than liberal democratic donors to condition financing on electoral accountability or governance reform, then authoritarian recipient governments may face lower political costs when accepting Chinese aid.
+- A competing explanation is that what looks like regime affinity may actually reflect omitted strategic factors such as trade, natural resources, diplomatic alignment, or regional importance.
+
+### 4. Data and Variable Construction
 
 Target length: `200-250` words
 
@@ -80,7 +130,11 @@ Important revision note for the final submission:
 
 If you revise the project to match the assignment rules, this section should explain how the panel was collapsed into a single cross-section per country, such as by averaging variables over the study period or using a final-period snapshot.
 
-### 4. Methodology
+Background sentence to add here if useful:
+
+The main independent variable is well aligned with the theoretical discussion because it comes from a standard regime classification that places China itself in the `closed autocracy` category during the study period.
+
+### 5. Methodology
 
 Target length: `200-250` words
 
@@ -106,7 +160,7 @@ Important revision note for the final submission:
 - The assignment requires a cross-sectional design, so the final memo should likely replace the fixed-effects discussion with a cross-sectional multiple regression using one observation per country.
 - The appendix still needs fuller Gauss-Markov diagnostics beyond VIF, such as residual plots and a heteroskedasticity check.
 
-### 5. Findings
+### 6. Findings
 
 Target length: `300-350` words
 
@@ -136,7 +190,7 @@ Possible paragraph starter:
 
 The main pattern in the results is straightforward: countries with more authoritarian regimes receive significantly more Chinese aid in simpler specifications, but the magnitude of that relationship falls and the estimate loses statistical significance in the most demanding specification.
 
-### 6. Limitations and Conclusion
+### 7. Limitations and Conclusion
 
 Target length: `150-200` words
 
@@ -158,6 +212,26 @@ Conclusion points:
 Possible closing sentence:
 
 Overall, the analysis suggests that authoritarianism is an important correlate of Chinese aid allocation, but the evidence is not yet strong enough to conclude confidently that regime type itself causes higher aid flows.
+
+## Background Draft Notes
+
+### Short background draft
+
+One way to motivate this project is through the broader political economy of aid allocation. Classic work by Alesina and Dollar argues that foreign aid is shaped not only by recipient need but also by donor political and strategic interests. A more specific extension of that logic is that donors may favor recipients that are politically closer to them. Lskavyan provides direct evidence consistent with this view, finding that greater ideological distance between donor and recipient is associated with lower levels of economic aid. For an authoritarian donor such as China, this raises the possibility that regime similarity matters because governments with similar political institutions may be easier to work with and less likely to resist state-led, low-conditionality financing arrangements.
+
+That mechanism is especially plausible given how major academic democracy datasets classify China. In the `Regimes of the World` framework developed by Lührmann, Tannenberg, and Lindberg, the most authoritarian regime category is `closed autocracy`. The V-Dem Institute's Democracy Report 2025 places China in that category, and the same coding appears in the OWID regime variable used in this project: China is coded `0` for every year from `2013` to `2021`, which corresponds to `closed autocracy`. This makes the paper's core hypothesis straightforward: if authoritarian donors tend to work more easily with authoritarian recipients, then more authoritarian countries should receive more Chinese development finance.
+
+### Compressed version if you need fewer words
+
+The academic literature suggests that aid is often allocated for political as well as developmental reasons. Alesina and Dollar show that donor interests matter, while Lskavyan finds that greater ideological distance between donors and recipients is associated with less aid. That framework is relevant for China because academic democracy datasets classify China as a closed autocracy. In the V-Dem framework, and in the OWID regime variable used here, China sits at the most authoritarian end of the regime scale. If donor-recipient political similarity lowers bargaining and monitoring frictions, then more authoritarian recipient governments may be especially likely to receive Chinese aid.
+
+## Academic Source List
+
+- `Alesina, Alberto, and David Dollar. 2000. "Who Gives Foreign Aid to Whom and Why?" Journal of Economic Growth 5(1): 33-63.` Link: <https://doi.org/10.1023/A:1009874203400>
+- `Lskavyan, Vahe. 2021. "Donor-recipient ideological differences and economic aid." Journal of International Development 33(4): 595-619.` Link: <https://doi.org/10.1002/jid.3579>
+- `Heurlin, Christopher. 2024. "How Authoritarian Is Foreign Aid?" British Journal of Political Science 54(4): 1274-1293.` Link: <https://doi.org/10.1017/S0007123423000503>
+- `Lührmann, Anna, Marcus Tannenberg, and Staffan I. Lindberg. 2018. "Regimes of the World (RoW): Opening New Avenues for the Comparative Study of Political Regimes." Democratization 25(7): 1321-1341.` Link: <https://doi.org/10.1080/13510347.2018.1453063>
+- `V-Dem Institute. 2025. Democracy Report 2025: 25 Years of Autocratization.` Link: <https://www.v-dem.net/documents/55/v-dem_dr2025_lowres.pdf>
 
 ## Figures, tables, and appendix checklist
 
