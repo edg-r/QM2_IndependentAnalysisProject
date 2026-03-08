@@ -54,6 +54,79 @@ compute_vif <- function(data, vars) {
   bind_rows(out)
 }
 
+# Breusch-Pagan test implemented from the auxiliary regression n * R^2.
+breusch_pagan_test <- function(model) {
+  e2 <- resid(model)^2
+  aux <- lm(e2 ~ model.matrix(model)[, -1, drop = FALSE])
+  stat <- length(e2) * summary(aux)$r.squared
+  df <- ncol(model.matrix(model)) - 1
+  p_value <- pchisq(stat, df = df, lower.tail = FALSE)
+  data.frame(
+    statistic = unname(stat),
+    df = df,
+    p_value = p_value
+  )
+}
+
+# HC1 heteroskedasticity-robust covariance matrix.
+vcov_hc1 <- function(model) {
+  X <- model.matrix(model)
+  u <- resid(model)
+  n <- nrow(X)
+  k <- ncol(X)
+  bread <- solve(crossprod(X))
+  meat <- crossprod(X, diag(u^2, nrow = n) %*% X)
+  (n / (n - k)) * bread %*% meat %*% bread
+}
+
+# One-way cluster-robust covariance by grouping variable.
+vcov_cluster <- function(model, cluster) {
+  X <- model.matrix(model)
+  u <- resid(model)
+  n <- nrow(X)
+  k <- ncol(X)
+  g <- length(unique(cluster))
+  bread <- solve(crossprod(X))
+  cluster_scores <- lapply(split(seq_len(n), cluster), function(idx) {
+    Xi <- X[idx, , drop = FALSE]
+    ui <- u[idx]
+    crossprod(Xi, ui)
+  })
+  meat <- Reduce(`+`, lapply(cluster_scores, function(s) s %*% t(s)))
+  scale_factor <- (g / (g - 1)) * ((n - 1) / (n - k))
+  scale_factor * bread %*% meat %*% bread
+}
+
+tidy_with_vcov <- function(model, vcov_mat, model_name) {
+  est <- coef(model)
+  se <- sqrt(diag(vcov_mat))
+  stat <- est / se
+  p_value <- 2 * pt(abs(stat), df = df.residual(model), lower.tail = FALSE)
+  data.frame(
+    term = names(est),
+    estimate = unname(est),
+    std.error = unname(se),
+    statistic = unname(stat),
+    p.value = unname(p_value),
+    model = model_name,
+    row.names = NULL
+  )
+}
+
+cooks_distance_table <- function(model, data, model_name, top_n = 10) {
+  cooks <- cooks.distance(model)
+  cutoff <- 4 / length(cooks)
+  out <- data.frame(
+    observation = seq_along(cooks),
+    entity = data$entity,
+    year = data$year,
+    cooks_distance = cooks,
+    above_cutoff = cooks > cutoff,
+    model = model_name
+  )
+  out[order(out$cooks_distance, decreasing = TRUE), ][seq_len(min(top_n, nrow(out))), ]
+}
+
 project_dir <- "."
 aid_path <- file.path(project_dir, "chinese-aid-data-2000-2021.xlsx")
 owid_path <- file.path(project_dir, "our-world-in-data-2013-2023.xlsx")
@@ -239,6 +312,39 @@ m3 <- lm(
 main_controls <- c("autocracy_score", "log_gdp_pc", "cpi", "extreme_poverty", "gini")
 vif_tbl <- compute_vif(m2_data, main_controls)
 write.csv(vif_tbl, file.path(output_dir, "selection_model_vif.csv"), row.names = FALSE)
+
+bp_tbl <- bind_rows(
+  breusch_pagan_test(m1) %>% mutate(model = "M1_bivariate"),
+  breusch_pagan_test(m2) %>% mutate(model = "M2_controls"),
+  breusch_pagan_test(m3) %>% mutate(model = "M3_country_year_FE")
+) %>%
+  select(model, statistic, df, p_value)
+
+write.csv(bp_tbl, file.path(output_dir, "selection_model_breusch_pagan.csv"), row.names = FALSE)
+
+vcov_m1_hc1 <- vcov_hc1(m1)
+vcov_m2_hc1 <- vcov_hc1(m2)
+vcov_m3_cluster_entity <- vcov_cluster(m3, m2_data$entity)
+
+robust_coef_tbl <- bind_rows(
+  tidy_with_vcov(m1, vcov_m1_hc1, "M1_bivariate_HC1"),
+  tidy_with_vcov(m2, vcov_m2_hc1, "M2_controls_HC1"),
+  tidy_with_vcov(m3, vcov_m3_cluster_entity, "M3_country_year_FE_cluster_entity")
+)
+
+write.csv(
+  robust_coef_tbl,
+  file.path(output_dir, "selection_model_coefficients_robust.csv"),
+  row.names = FALSE
+)
+
+cooks_tbl <- bind_rows(
+  cooks_distance_table(m1, m1_data, "M1_bivariate"),
+  cooks_distance_table(m2, m2_data, "M2_controls"),
+  cooks_distance_table(m3, m2_data, "M3_country_year_FE")
+)
+
+write.csv(cooks_tbl, file.path(output_dir, "selection_model_cooks_distance_top10.csv"), row.names = FALSE)
 
 coef_tbl <- bind_rows(
   tidy(m1, conf.int = TRUE) %>% mutate(model = "M1_bivariate"),
