@@ -40,7 +40,7 @@ What the script does:
    - **M1**: bivariate OLS (`log_china_aid ~ autocracy_score`)
    - **M2**: OLS with controls
    - **M3**: OLS with country and year fixed effects
-5. Exports model outputs and diagnostics.
+5. Exports descriptive statistics, memo-ready `stargazer` regression tables, and `ggplot2` figures.
 
 ## How to Run
 
@@ -57,12 +57,19 @@ Generated in `output/`:
 - `selection_model_panel.csv` (merged analysis panel)
 - `selection_model_coefficients.csv` (model coefficients + CIs)
 - `selection_model_fitstats.csv` (fit statistics)
+- `selection_model_descriptive_stats.csv` (overall summary statistics)
+- `selection_model_descriptive_stats_by_regime.csv` (summary statistics by authoritarian/democratic grouping)
+- `selection_model_regression_table.txt` and `.html` (`stargazer` regression tables)
 - `selection_model_vif.csv` (multicollinearity check for M2 controls)
+- `selection_model_aid_scatter.png` (bivariate fitted relationship)
 - `selection_model_regime_barplot.png` (descriptive figure)
+- `selection_model_regime_family_pie.png` (authoritarian vs democratic country-years)
+- `selection_model_latest_regime_family_pie.png` (authoritarian vs democratic countries in latest year)
 
 ## Notes
 
 - Missing markers `"."` are converted to `NA` before numeric conversion.
 - Country-years with no AidData record are treated as zero aid in the panel.
 - `autocracy_score = 3 - political_regime` so higher values mean less democratic regimes.
+- For the pie charts, `political-regime` values `0` and `1` are grouped as `Authoritarian`, while `2` and `3` are grouped as `Democratic`.
 - This is a starter empirical design for the policy memo and diagnostics; additional robustness checks can be added as needed.

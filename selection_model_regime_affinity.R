@@ -1,20 +1,6 @@
-#!/usr/bin/env Rscript
-
 # Selection model: Do countries with more authoritarian regimes receive more
 # Chinese aid? This script builds a country-year panel and runs progressive
 # regressions for your QM2 memo.
-
-required_pkgs <- c("readxl", "dplyr", "tidyr", "stringr", "broom", "ggplot2")
-missing_pkgs <- required_pkgs[!vapply(required_pkgs, requireNamespace, logical(1), quietly = TRUE)]
-if (length(missing_pkgs) > 0) {
-  stop(
-    paste(
-      "Missing required packages:",
-      paste(missing_pkgs, collapse = ", "),
-      "\nInstall them first, then rerun."
-    )
-  )
-}
 
 library(readxl)
 library(dplyr)
@@ -22,6 +8,7 @@ library(tidyr)
 library(stringr)
 library(broom)
 library(ggplot2)
+library(stargazer)
 
 options(scipen = 999)
 
@@ -38,6 +25,22 @@ safe_mean <- function(x) {
     return(NA_real_)
   }
   mean(x, na.rm = TRUE)
+}
+
+# Descriptive-statistics helper for key variables.
+describe_vars <- function(data, vars) {
+  bind_rows(lapply(vars, function(v) {
+    x <- data[[v]]
+    data.frame(
+      variable = v,
+      n = sum(!is.na(x)),
+      mean = mean(x, na.rm = TRUE),
+      sd = sd(x, na.rm = TRUE),
+      min = min(x, na.rm = TRUE),
+      median = median(x, na.rm = TRUE),
+      max = max(x, na.rm = TRUE)
+    )
+  }))
 }
 
 # Simple VIF calculator for the non-FE control model (M2).
@@ -76,6 +79,7 @@ aid_panel <- aid_raw %>%
     intent = str_trim(Intent)
   ) %>%
   filter(!is.na(entity), !is.na(year), year >= 2013, year <= 2021) %>%
+  
   # AidData guidance: use records recommended for aggregation to avoid
   # double-counting and to drop cancelled/suspended/pledge-only records.
   filter(recommended_for_aggregates == "Yes") %>%
@@ -132,13 +136,66 @@ analysis_panel <- owid_panel %>%
     log_china_aid = log1p(china_aid_usd2021),
     log_gdp_pc = ifelse(!is.na(gdp_pc) & gdp_pc > 0, log(gdp_pc), NA_real_),
     # Recode so higher value = more authoritarian; coefficient sign is easier.
-    autocracy_score = 3 - political_regime
+    autocracy_score = 3 - political_regime,
+    regime_label = case_when(
+      political_regime == 0 ~ "Closed autocracy",
+      political_regime == 1 ~ "Electoral autocracy",
+      political_regime == 2 ~ "Electoral democracy",
+      political_regime == 3 ~ "Liberal democracy",
+      TRUE ~ NA_character_
+    ),
+    regime_family = case_when(
+      political_regime %in% c(0, 1) ~ "Authoritarian",
+      political_regime %in% c(2, 3) ~ "Democratic",
+      TRUE ~ NA_character_
+    )
   )
 
 write.csv(analysis_panel, file.path(output_dir, "selection_model_panel.csv"), row.names = FALSE)
 
 # -----------------------------
-# 4) Regressions (progressive specs)
+# 4) Descriptive statistics
+# -----------------------------
+desc_vars <- c(
+  "china_aid_usd2021",
+  "log_china_aid",
+  "china_project_count",
+  "autocracy_score",
+  "political_regime",
+  "log_gdp_pc",
+  "cpi",
+  "extreme_poverty",
+  "gini"
+)
+
+desc_tbl <- describe_vars(analysis_panel, desc_vars)
+write.csv(desc_tbl, file.path(output_dir, "selection_model_descriptive_stats.csv"), row.names = FALSE)
+
+desc_by_regime_tbl <- analysis_panel %>%
+  filter(!is.na(regime_family)) %>%
+  group_by(regime_family) %>%
+  summarize(
+    observations = n(),
+    countries = n_distinct(entity),
+    mean_aid_usd2021 = mean(china_aid_usd2021, na.rm = TRUE),
+    median_aid_usd2021 = median(china_aid_usd2021, na.rm = TRUE),
+    mean_project_count = mean(china_project_count, na.rm = TRUE),
+    mean_autocracy_score = mean(autocracy_score, na.rm = TRUE),
+    mean_log_gdp_pc = mean(log_gdp_pc, na.rm = TRUE),
+    mean_cpi = mean(cpi, na.rm = TRUE),
+    mean_extreme_poverty = mean(extreme_poverty, na.rm = TRUE),
+    mean_gini = mean(gini, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+write.csv(
+  desc_by_regime_tbl,
+  file.path(output_dir, "selection_model_descriptive_stats_by_regime.csv"),
+  row.names = FALSE
+)
+
+# -----------------------------
+# 5) Regressions (progressive specs)
 # -----------------------------
 run_optional_logit <- FALSE
 
@@ -176,7 +233,7 @@ m3 <- lm(
 )
 
 # -----------------------------
-# 5) Diagnostics and outputs
+# 6) Diagnostics and outputs
 # -----------------------------
 # Multicollinearity check for non-FE covariates.
 main_controls <- c("autocracy_score", "log_gdp_pc", "cpi", "extreme_poverty", "gini")
@@ -220,28 +277,186 @@ if (run_optional_logit) {
 
 write.csv(fit_tbl, file.path(output_dir, "selection_model_fitstats.csv"), row.names = FALSE)
 
-# Quick descriptive plot for memo figure draft
-p <- analysis_panel %>%
-  filter(!is.na(political_regime)) %>%
-  group_by(political_regime) %>%
+# Stargazer regression tables for memo-ready output.
+invisible(capture.output(
+  stargazer(
+    m1, m2, m3,
+    type = "text",
+    title = "Chinese Aid and Regime Type",
+    dep.var.labels = "Log(1 + Chinese aid in constant USD 2021)",
+    column.labels = c("Bivariate", "Controls", "Country + Year FE"),
+    covariate.labels = c(
+      "Autocracy score",
+      "Log GDP per capita",
+      "Corruption Perceptions Index",
+      "Extreme poverty share",
+      "Gini index"
+    ),
+    omit = c("factor\\(entity\\)", "factor\\(year\\)"),
+    omit.stat = c("f", "ser"),
+    add.lines = list(
+      c("Country fixed effects", "No", "No", "Yes"),
+      c("Year fixed effects", "No", "No", "Yes")
+    ),
+    out = file.path(output_dir, "selection_model_regression_table.txt")
+  )
+))
+
+invisible(capture.output(
+  stargazer(
+    m1, m2, m3,
+    type = "html",
+    title = "Chinese Aid and Regime Type",
+    dep.var.labels = "Log(1 + Chinese aid in constant USD 2021)",
+    column.labels = c("Bivariate", "Controls", "Country + Year FE"),
+    covariate.labels = c(
+      "Autocracy score",
+      "Log GDP per capita",
+      "Corruption Perceptions Index",
+      "Extreme poverty share",
+      "Gini index"
+    ),
+    omit = c("factor\\(entity\\)", "factor\\(year\\)"),
+    omit.stat = c("f", "ser"),
+    add.lines = list(
+      c("Country fixed effects", "No", "No", "Yes"),
+      c("Year fixed effects", "No", "No", "Yes")
+    ),
+    out = file.path(output_dir, "selection_model_regression_table.html")
+  )
+))
+
+invisible(capture.output(
+  stargazer(
+    desc_tbl,
+    type = "text",
+    summary = FALSE,
+    title = "Descriptive Statistics",
+    out = file.path(output_dir, "selection_model_descriptive_stats.txt")
+  )
+))
+
+invisible(capture.output(
+  stargazer(
+    desc_tbl,
+    type = "html",
+    summary = FALSE,
+    title = "Descriptive Statistics",
+    out = file.path(output_dir, "selection_model_descriptive_stats.html")
+  )
+))
+
+# Quick descriptive plot for memo figure draft.
+regime_barplot <- analysis_panel %>%
+  filter(!is.na(regime_label)) %>%
+  group_by(regime_label) %>%
   summarize(
     avg_log_aid = mean(log_china_aid, na.rm = TRUE),
     n = n(),
     .groups = "drop"
   ) %>%
-  ggplot(aes(x = factor(political_regime), y = avg_log_aid)) +
+  mutate(
+    regime_label = factor(
+      regime_label,
+      levels = c(
+        "Closed autocracy",
+        "Electoral autocracy",
+        "Electoral democracy",
+        "Liberal democracy"
+      )
+    )
+  ) %>%
+  ggplot(aes(x = regime_label, y = avg_log_aid)) +
   geom_col(fill = "#2C7FB8") +
   labs(
     title = "Average Chinese Aid by Regime Type (2013-2021)",
-    x = "Political regime (0=closed autocracy ... 3=liberal democracy)",
+    x = "Regime type",
     y = "Average log(1 + Chinese aid in constant USD 2021)"
   ) +
   theme_minimal(base_size = 12)
 
 ggsave(
   filename = file.path(output_dir, "selection_model_regime_barplot.png"),
-  plot = p,
+  plot = regime_barplot,
   width = 8,
+  height = 5,
+  dpi = 300
+)
+
+aid_scatter <- analysis_panel %>%
+  filter(!is.na(autocracy_score), !is.na(log_china_aid)) %>%
+  ggplot(aes(x = autocracy_score, y = log_china_aid)) +
+  geom_jitter(width = 0.15, height = 0, alpha = 0.25, color = "#1B4332") +
+  geom_smooth(method = "lm", se = TRUE, color = "#D62828", linewidth = 1) +
+  scale_x_continuous(breaks = 0:3) +
+  labs(
+    title = "Bivariate Relationship Between Autocracy and Chinese Aid",
+    x = "Autocracy score (higher = more authoritarian)",
+    y = "Log(1 + Chinese aid in constant USD 2021)"
+  ) +
+  theme_minimal(base_size = 12)
+
+ggsave(
+  filename = file.path(output_dir, "selection_model_aid_scatter.png"),
+  plot = aid_scatter,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+
+regime_family_pie <- analysis_panel %>%
+  filter(!is.na(regime_family)) %>%
+  count(regime_family) %>%
+  mutate(
+    share = n / sum(n),
+    label = paste0(regime_family, " (", round(share * 100, 1), "%)")
+  ) %>%
+  ggplot(aes(x = "", y = n, fill = regime_family)) +
+  geom_col(width = 1, color = "white") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.8) +
+  coord_polar(theta = "y") +
+  labs(
+    title = "Share of Authoritarian vs Democratic Country-Years",
+    fill = "Regime family"
+  ) +
+  theme_void(base_size = 12) +
+  theme(legend.position = "right") +
+  scale_fill_manual(values = c("Authoritarian" = "#9D0208", "Democratic" = "#005F73"))
+
+ggsave(
+  filename = file.path(output_dir, "selection_model_regime_family_pie.png"),
+  plot = regime_family_pie,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+latest_year <- max(analysis_panel$year, na.rm = TRUE)
+
+latest_country_regime_pie <- analysis_panel %>%
+  filter(year == latest_year, !is.na(regime_family)) %>%
+  distinct(entity, regime_family) %>%
+  count(regime_family) %>%
+  mutate(
+    share = n / sum(n),
+    label = paste0(regime_family, " countries (", round(share * 100, 1), "%)")
+  ) %>%
+  ggplot(aes(x = "", y = n, fill = regime_family)) +
+  geom_col(width = 1, color = "white") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.8) +
+  coord_polar(theta = "y") +
+  labs(
+    title = paste("Country Distribution by Regime Family in", latest_year),
+    fill = "Regime family"
+  ) +
+  theme_void(base_size = 12) +
+  theme(legend.position = "right") +
+  scale_fill_manual(values = c("Authoritarian" = "#AE2012", "Democratic" = "#005F73"))
+
+ggsave(
+  filename = file.path(output_dir, "selection_model_latest_regime_family_pie.png"),
+  plot = latest_country_regime_pie,
+  width = 7,
   height = 5,
   dpi = 300
 )
@@ -251,5 +466,11 @@ cat("Main files:\n")
 cat("- selection_model_panel.csv\n")
 cat("- selection_model_coefficients.csv\n")
 cat("- selection_model_fitstats.csv\n")
-cat("- selection_model_vif.csv\n")
+cat("- selection_model_descriptive_stats.csv\n")
+cat("- selection_model_descriptive_stats_by_regime.csv\n")
+cat("- selection_model_regression_table.txt/.html\n")
+cat("- selection_model_aid_scatter.png\n")
 cat("- selection_model_regime_barplot.png\n")
+cat("- selection_model_regime_family_pie.png\n")
+cat("- selection_model_latest_regime_family_pie.png\n")
+cat("- selection_model_vif.csv\n")
