@@ -34,13 +34,14 @@ This repository contains a reproducible starter workflow for the QM2 Independent
 What the script does:
 
 1. Loads and cleans AidData + OWID data.
-2. Aggregates Chinese aid to country-year level.
-3. Merges to a single country-year panel (`2013-2021`).
-4. Runs progressive models:
+2. Builds a sector-earmark breakdown from project-level AidData records.
+3. Aggregates Chinese aid to country-year level.
+4. Merges to a single country-year panel (`2013-2021`).
+5. Runs progressive models:
    - **M1**: bivariate OLS (`log_china_aid ~ autocracy_score`)
    - **M2**: OLS with controls
    - **M3**: OLS with country and year fixed effects
-5. Exports descriptive statistics, memo-ready `stargazer` regression tables, `ggplot2` figures, and regression diagnostics.
+6. Exports descriptive statistics, sector-breakdown tables, memo-ready `stargazer` regression tables, `ggplot2` figures, and regression diagnostics.
 
 ## How to Run
 
@@ -59,6 +60,8 @@ Generated in `output/`:
 - `selection_model_fitstats.csv` (fit statistics)
 - `selection_model_descriptive_stats.csv` (overall summary statistics)
 - `selection_model_descriptive_stats_by_regime.csv` (summary statistics by authoritarian/democratic grouping)
+- `selection_model_sector_breakdown.csv` (aid totals, shares, and project counts by sector earmark)
+- `selection_model_sector_top_recipients.csv` (top five recipient countries within each sector by aid total)
 - `selection_model_regression_table.txt` and `.html` (`stargazer` regression tables with robust SEs)
 - `selection_model_coefficients_robust.csv` (robust and clustered-SE coefficient table)
 - `selection_model_breusch_pagan.csv` (heteroskedasticity test results)
@@ -67,6 +70,7 @@ Generated in `output/`:
 - `selection_model_vif.csv` (multicollinearity check for M2 controls)
 - `selection_model_aid_scatter.png` (bivariate fitted relationship)
 - `selection_model_regime_barplot.png` (descriptive figure)
+- `selection_model_sector_barplot.png` (top 10 sectors by adjusted aid total)
 - `selection_model_regime_family_pie.png` (authoritarian vs democratic country-years)
 - `selection_model_latest_regime_family_pie.png` (authoritarian vs democratic countries in latest year)
 - `selection_model_residuals_vs_fitted_m2.png` (functional form / variance diagnostic)

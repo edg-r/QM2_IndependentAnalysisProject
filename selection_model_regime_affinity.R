@@ -50,6 +50,13 @@ caption_theme <- theme(
   plot.margin = margin(12, 18, 18, 12)
 )
 
+# Chinese-red palette for memo figures.
+china_red <- "#DE2910"
+china_red_dark <- "#A61E0A"
+china_red_light <- "#F28B82"
+china_red_deep <- "#7A1608"
+china_red_soft <- "#F7D6D1"
+
 # Simple VIF calculator for the non-FE control model (M2).
 compute_vif <- function(data, vars) {
   out <- lapply(vars, function(v) {
@@ -148,7 +155,7 @@ if (!dir.exists(output_dir)) {
 # -----------------------------
 aid_raw <- read_excel(aid_path, sheet = "aid-data", col_types = "text")
 
-aid_panel <- aid_raw %>%
+aid_project_level <- aid_raw %>%
   transmute(
     entity = str_trim(entity),
     year = to_numeric(year),
@@ -156,13 +163,24 @@ aid_panel <- aid_raw %>%
     adjusted_amount_usd2021 = to_numeric(`Adjusted Amount (Constant USD 2021)`),
     amount_usd2021 = to_numeric(`Amount (Constant USD 2021)`),
     flow_type_simplified = str_trim(`Flow Type Simplified`),
-    intent = str_trim(Intent)
+    intent = str_trim(Intent),
+    sector_code = str_trim(`Sector Code`),
+    sector_name = str_trim(`Sector Name`)
   ) %>%
   filter(!is.na(entity), !is.na(year), year >= 2013, year <= 2021) %>%
-  
   # AidData guidance: use records recommended for aggregation to avoid
   # double-counting and to drop cancelled/suspended/pledge-only records.
   filter(recommended_for_aggregates == "Yes") %>%
+  mutate(
+    sector_code = ifelse(is.na(sector_code) | sector_code == "", "998", sector_code),
+    sector_name = ifelse(
+      is.na(sector_name) | sector_name == "",
+      "UNALLOCATED/UNSPECIFIED",
+      sector_name
+    )
+  )
+
+aid_panel <- aid_project_level %>%
   group_by(entity, year) %>%
   summarize(
     # Main outcome: total yearly Chinese aid by country in constant USD.
@@ -182,6 +200,50 @@ aid_panel <- aid_raw %>%
       china_aid_usd2021_unadjusted
     )
   )
+
+sector_breakdown_tbl <- aid_project_level %>%
+  group_by(sector_code, sector_name) %>%
+  summarize(
+    total_aid_usd2021 = sum(adjusted_amount_usd2021, na.rm = TRUE),
+    project_count = n(),
+    funded_project_count = sum(!is.na(adjusted_amount_usd2021)),
+    recipient_count = n_distinct(entity),
+    avg_funded_project_size_usd2021 = ifelse(
+      funded_project_count > 0,
+      total_aid_usd2021 / funded_project_count,
+      NA_real_
+    ),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    share_of_total_aid = total_aid_usd2021 / sum(total_aid_usd2021, na.rm = TRUE)
+  ) %>%
+  arrange(desc(total_aid_usd2021))
+
+write.csv(
+  sector_breakdown_tbl,
+  file.path(output_dir, "selection_model_sector_breakdown.csv"),
+  row.names = FALSE
+)
+
+sector_top_recipients_tbl <- aid_project_level %>%
+  group_by(sector_code, sector_name, entity) %>%
+  summarize(
+    total_aid_usd2021 = sum(adjusted_amount_usd2021, na.rm = TRUE),
+    funded_project_count = sum(!is.na(adjusted_amount_usd2021)),
+    .groups = "drop"
+  ) %>%
+  group_by(sector_code, sector_name) %>%
+  arrange(desc(total_aid_usd2021), .by_group = TRUE) %>%
+  mutate(rank_within_sector = row_number()) %>%
+  filter(rank_within_sector <= 5) %>%
+  ungroup()
+
+write.csv(
+  sector_top_recipients_tbl,
+  file.path(output_dir, "selection_model_sector_top_recipients.csv"),
+  row.names = FALSE
+)
 
 # -----------------------------
 # 2) Load and prep OWID controls
@@ -492,7 +554,7 @@ regime_barplot <- analysis_panel %>%
     )
   ) %>%
   ggplot(aes(x = regime_label, y = avg_log_aid)) +
-  geom_col(fill = "#2C7FB8") +
+  geom_col(fill = china_red) +
   labs(
     title = "Average Chinese Aid by Regime Type (2013-2021)",
     x = "Regime type",
@@ -518,11 +580,44 @@ ggsave(
   dpi = 300
 )
 
+sector_barplot <- sector_breakdown_tbl %>%
+  slice_head(n = 10) %>%
+  mutate(
+    sector_name = factor(sector_name, levels = rev(sector_name)),
+    aid_billions_usd2021 = total_aid_usd2021 / 1000000000
+  ) %>%
+  ggplot(aes(x = sector_name, y = aid_billions_usd2021)) +
+  geom_col(fill = china_red_deep) +
+  coord_flip() +
+  labs(
+    title = "Top Chinese Aid Earmarks by Sector (2013-2021)",
+    x = "Sector",
+    y = "Adjusted aid, billions of constant USD 2021",
+    caption = str_wrap(
+      paste(
+        "Sector totals are computed from project-level AidData records marked",
+        "'Recommended For Aggregates = Yes' and summed using Adjusted Amount",
+        "(Constant USD 2021). Only 2013-2021 is included to match the main panel."
+      ),
+      width = 95
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  caption_theme
+
+ggsave(
+  filename = file.path(output_dir, "selection_model_sector_barplot.png"),
+  plot = sector_barplot,
+  width = 9,
+  height = 6,
+  dpi = 300
+)
+
 aid_scatter <- analysis_panel %>%
   filter(!is.na(autocracy_score), !is.na(log_china_aid)) %>%
   ggplot(aes(x = autocracy_score, y = log_china_aid)) +
-  geom_jitter(width = 0.15, height = 0, alpha = 0.25, color = "#1B4332") +
-  geom_smooth(method = "lm", se = TRUE, color = "#D62828", linewidth = 1) +
+  geom_jitter(width = 0.15, height = 0, alpha = 0.25, color = china_red_dark) +
+  geom_smooth(method = "lm", se = TRUE, color = china_red, linewidth = 1) +
   scale_x_continuous(breaks = 0:3) +
   labs(
     title = "Bivariate Relationship Between Autocracy and Chinese Aid",
@@ -573,7 +668,7 @@ regime_family_pie <- analysis_panel %>%
   theme_void(base_size = 12) +
   theme(legend.position = "right") +
   caption_theme +
-  scale_fill_manual(values = c("Authoritarian" = "#9D0208", "Democratic" = "#005F73"))
+  scale_fill_manual(values = c("Authoritarian" = china_red, "Democratic" = china_red_soft))
 
 ggsave(
   filename = file.path(output_dir, "selection_model_regime_family_pie.png"),
@@ -611,7 +706,7 @@ latest_country_regime_pie <- analysis_panel %>%
   theme_void(base_size = 12) +
   theme(legend.position = "right") +
   caption_theme +
-  scale_fill_manual(values = c("Authoritarian" = "#AE2012", "Democratic" = "#005F73"))
+  scale_fill_manual(values = c("Authoritarian" = china_red_dark, "Democratic" = china_red_light))
 
 ggsave(
   filename = file.path(output_dir, "selection_model_latest_regime_family_pie.png"),
@@ -630,9 +725,9 @@ diagnostic_data_m2 <- data.frame(
 
 residual_fitted_plot <- diagnostic_data_m2 %>%
   ggplot(aes(x = fitted, y = residual)) +
-  geom_point(alpha = 0.35, color = "#264653") +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "#D62828") +
-  geom_smooth(se = FALSE, color = "#2A9D8F", linewidth = 1) +
+  geom_point(alpha = 0.35, color = china_red_dark) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = china_red) +
+  geom_smooth(se = FALSE, color = china_red_light, linewidth = 1) +
   labs(
     title = "Residuals vs Fitted Values (M2)",
     x = "Fitted values",
@@ -663,8 +758,8 @@ qq_data_m2 <- data.frame(
 
 qq_plot_m2 <- qq_data_m2 %>%
   ggplot(aes(x = theoretical, y = sample)) +
-  geom_point(alpha = 0.35, color = "#1D3557") +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "#D62828") +
+  geom_point(alpha = 0.35, color = china_red_dark) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = china_red) +
   labs(
     title = "Normal Q-Q Plot of Standardized Residuals (M2)",
     x = "Theoretical quantiles",
@@ -691,8 +786,8 @@ ggsave(
 cooks_plot_m2 <- cooks_tbl %>%
   filter(model == "M2_controls") %>%
   ggplot(aes(x = reorder(paste(entity, year, sep = "-"), cooks_distance), y = cooks_distance)) +
-  geom_col(fill = "#6A040F") +
-  geom_hline(yintercept = 4 / nrow(m2_data), linetype = "dashed", color = "#005F73") +
+  geom_col(fill = china_red_deep) +
+  geom_hline(yintercept = 4 / nrow(m2_data), linetype = "dashed", color = china_red_light) +
   coord_flip() +
   labs(
     title = "Top 10 Cook's Distance Observations (M2)",
@@ -740,6 +835,8 @@ cat("- selection_model_coefficients.csv\n")
 cat("- selection_model_fitstats.csv\n")
 cat("- selection_model_descriptive_stats.csv\n")
 cat("- selection_model_descriptive_stats_by_regime.csv\n")
+cat("- selection_model_sector_breakdown.csv\n")
+cat("- selection_model_sector_top_recipients.csv\n")
 cat("- selection_model_regression_table.txt/.html\n")
 cat("- selection_model_coefficients_robust.csv\n")
 cat("- selection_model_breusch_pagan.csv\n")
@@ -747,6 +844,7 @@ cat("- selection_model_cooks_distance_top10.csv\n")
 cat("- selection_model_assumption_summary.csv\n")
 cat("- selection_model_aid_scatter.png\n")
 cat("- selection_model_regime_barplot.png\n")
+cat("- selection_model_sector_barplot.png\n")
 cat("- selection_model_regime_family_pie.png\n")
 cat("- selection_model_latest_regime_family_pie.png\n")
 cat("- selection_model_residuals_vs_fitted_m2.png\n")
