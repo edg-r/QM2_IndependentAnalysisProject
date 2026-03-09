@@ -1,35 +1,36 @@
 
-Chinese Aid and Regime Type
+Chinese Aid and Regime Type (Robust Standard Errors)
 ========================================================================
                                          Dependent variable:            
                              -------------------------------------------
                               Log(1 + Chinese aid in constant USD 2021) 
-                              Bivariate     Controls   Country + Year FE
-                                 (1)          (2)             (3)       
+                              Bivariate   Controls   Country + Year FE  
+                                 (1)        (2)             (3)         
 ------------------------------------------------------------------------
-Autocracy score                3.386***     3.306***         1.840      
-                               (0.223)      (0.535)         (1.143)     
+Autocracy score               3.386***    3.306***         1.840        
+                               (0.237)    (0.685)         (2.049)       
                                                                         
-Log GDP per capita                         -2.570***        -7.658      
-                                            (0.797)         (6.136)     
+Log GDP per capita                       -2.570***         -7.658       
+                                          (0.874)         (7.602)       
                                                                         
-Corruption Perceptions Index                -0.071**         0.017      
-                                            (0.034)         (0.100)     
+Corruption Perceptions Index              -0.071*          0.017        
+                                          (0.037)         (0.152)       
                                                                         
-Extreme poverty share                        -0.032          0.040      
-                                            (0.050)         (0.125)     
+Extreme poverty share                      -0.032          0.040        
+                                          (0.047)         (0.153)       
                                                                         
-Gini index                                 21.674***        17.241      
-                                            (4.930)        (18.354)     
+Gini index                               21.674***         17.241       
+                                          (5.778)         (38.499)      
                                                                         
-Constant                       6.287***    27.285***        75.192      
-                               (0.375)      (7.542)        (59.423)     
+Constant                      6.287***   27.285***         75.192       
+                               (0.354)    (7.914)         (80.642)      
                                                                         
 ------------------------------------------------------------------------
-Country fixed effects             No           No             Yes       
-Year fixed effects                No           No             Yes       
-Observations                    1,564         482             482       
-R2                              0.128        0.460           0.866      
-Adjusted R2                     0.128        0.454           0.810      
+Country fixed effects            No          No             Yes         
+Year fixed effects               No          No             Yes         
+Standard errors                  HC1        HC1     Clustered by country
+Observations                    1,564       482             482         
+R2                              0.128      0.460           0.866        
+Adjusted R2                     0.128      0.454           0.810        
 ========================================================================
 Note:                                        *p<0.1; **p<0.05; ***p<0.01

@@ -9,6 +9,7 @@ library(stringr)
 library(broom)
 library(ggplot2)
 library(stargazer)
+library(grid)
 
 options(scipen = 999)
 
@@ -42,6 +43,12 @@ describe_vars <- function(data, vars) {
     )
   }))
 }
+
+caption_theme <- theme(
+  plot.caption = element_text(hjust = 0, size = 9, lineheight = 1.1),
+  plot.caption.position = "plot",
+  plot.margin = margin(12, 18, 18, 12)
+)
 
 # Simple VIF calculator for the non-FE control model (M2).
 compute_vif <- function(data, vars) {
@@ -388,7 +395,7 @@ invisible(capture.output(
   stargazer(
     m1, m2, m3,
     type = "text",
-    title = "Chinese Aid and Regime Type",
+    title = "Chinese Aid and Regime Type (Robust Standard Errors)",
     dep.var.labels = "Log(1 + Chinese aid in constant USD 2021)",
     column.labels = c("Bivariate", "Controls", "Country + Year FE"),
     covariate.labels = c(
@@ -402,7 +409,13 @@ invisible(capture.output(
     omit.stat = c("f", "ser"),
     add.lines = list(
       c("Country fixed effects", "No", "No", "Yes"),
-      c("Year fixed effects", "No", "No", "Yes")
+      c("Year fixed effects", "No", "No", "Yes"),
+      c("Standard errors", "HC1", "HC1", "Clustered by country")
+    ),
+    se = list(
+      sqrt(diag(vcov_m1_hc1)),
+      sqrt(diag(vcov_m2_hc1)),
+      sqrt(diag(vcov_m3_cluster_entity))
     ),
     out = file.path(output_dir, "selection_model_regression_table.txt")
   )
@@ -412,7 +425,7 @@ invisible(capture.output(
   stargazer(
     m1, m2, m3,
     type = "html",
-    title = "Chinese Aid and Regime Type",
+    title = "Chinese Aid and Regime Type (Robust Standard Errors)",
     dep.var.labels = "Log(1 + Chinese aid in constant USD 2021)",
     column.labels = c("Bivariate", "Controls", "Country + Year FE"),
     covariate.labels = c(
@@ -426,7 +439,13 @@ invisible(capture.output(
     omit.stat = c("f", "ser"),
     add.lines = list(
       c("Country fixed effects", "No", "No", "Yes"),
-      c("Year fixed effects", "No", "No", "Yes")
+      c("Year fixed effects", "No", "No", "Yes"),
+      c("Standard errors", "HC1", "HC1", "Clustered by country")
+    ),
+    se = list(
+      sqrt(diag(vcov_m1_hc1)),
+      sqrt(diag(vcov_m2_hc1)),
+      sqrt(diag(vcov_m3_cluster_entity))
     ),
     out = file.path(output_dir, "selection_model_regression_table.html")
   )
@@ -477,9 +496,19 @@ regime_barplot <- analysis_panel %>%
   labs(
     title = "Average Chinese Aid by Regime Type (2013-2021)",
     x = "Regime type",
-    y = "Average log(1 + Chinese aid in constant USD 2021)"
+    y = "Average log(1 + Chinese aid in constant USD 2021)",
+    caption = str_wrap(
+      paste(
+        "Descriptive figure. Bars show the mean of log(1 + annual Chinese aid) by",
+        "OWID political-regime category. Source variable: political-regime",
+        "(0 = closed autocracy, 1 = electoral autocracy, 2 = electoral democracy,",
+        "3 = liberal democracy)."
+      ),
+      width = 95
+    )
   ) +
-  theme_minimal(base_size = 12)
+  theme_minimal(base_size = 12) +
+  caption_theme
 
 ggsave(
   filename = file.path(output_dir, "selection_model_regime_barplot.png"),
@@ -498,9 +527,18 @@ aid_scatter <- analysis_panel %>%
   labs(
     title = "Bivariate Relationship Between Autocracy and Chinese Aid",
     x = "Autocracy score (higher = more authoritarian)",
-    y = "Log(1 + Chinese aid in constant USD 2021)"
+    y = "Log(1 + Chinese aid in constant USD 2021)",
+    caption = str_wrap(
+      paste(
+        "Relational figure. Points are country-years and the line is an OLS fit with",
+        "95% confidence interval. autocracy_score is coded as 3 - political_regime,",
+        "so 3 = closed autocracy and 0 = liberal democracy."
+      ),
+      width = 95
+    )
   ) +
-  theme_minimal(base_size = 12)
+  theme_minimal(base_size = 12) +
+  caption_theme
 
 ggsave(
   filename = file.path(output_dir, "selection_model_aid_scatter.png"),
@@ -523,10 +561,18 @@ regime_family_pie <- analysis_panel %>%
   coord_polar(theta = "y") +
   labs(
     title = "Share of Authoritarian vs Democratic Country-Years",
-    fill = "Regime family"
+    fill = "Regime family",
+    caption = str_wrap(
+      paste(
+        "Descriptive figure. Shares are calculated over country-year observations.",
+        "Authoritarian = political-regime 0 or 1; Democratic = political-regime 2 or 3."
+      ),
+      width = 90
+    )
   ) +
   theme_void(base_size = 12) +
   theme(legend.position = "right") +
+  caption_theme +
   scale_fill_manual(values = c("Authoritarian" = "#9D0208", "Democratic" = "#005F73"))
 
 ggsave(
@@ -553,10 +599,18 @@ latest_country_regime_pie <- analysis_panel %>%
   coord_polar(theta = "y") +
   labs(
     title = paste("Country Distribution by Regime Family in", latest_year),
-    fill = "Regime family"
+    fill = "Regime family",
+    caption = str_wrap(
+      paste(
+        "Descriptive figure. Shares are calculated over distinct countries in the latest",
+        "sample year. Authoritarian = political-regime 0 or 1; Democratic = political-regime 2 or 3."
+      ),
+      width = 90
+    )
   ) +
   theme_void(base_size = 12) +
   theme(legend.position = "right") +
+  caption_theme +
   scale_fill_manual(values = c("Authoritarian" = "#AE2012", "Democratic" = "#005F73"))
 
 ggsave(
@@ -567,6 +621,118 @@ ggsave(
   dpi = 300
 )
 
+diagnostic_data_m2 <- data.frame(
+  fitted = fitted(m2),
+  residual = resid(m2),
+  std_residual = rstandard(m2),
+  cooks_distance = cooks.distance(m2)
+)
+
+residual_fitted_plot <- diagnostic_data_m2 %>%
+  ggplot(aes(x = fitted, y = residual)) +
+  geom_point(alpha = 0.35, color = "#264653") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "#D62828") +
+  geom_smooth(se = FALSE, color = "#2A9D8F", linewidth = 1) +
+  labs(
+    title = "Residuals vs Fitted Values (M2)",
+    x = "Fitted values",
+    y = "Residuals",
+    caption = str_wrap(
+      paste(
+        "Relational diagnostic figure. Residuals from M2 are plotted against fitted values",
+        "to assess functional form and heteroskedasticity in the controlled OLS model."
+      ),
+      width = 95
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  caption_theme
+
+ggsave(
+  filename = file.path(output_dir, "selection_model_residuals_vs_fitted_m2.png"),
+  plot = residual_fitted_plot,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+
+qq_data_m2 <- data.frame(
+  sample = sort(diagnostic_data_m2$std_residual),
+  theoretical = qnorm(ppoints(length(diagnostic_data_m2$std_residual)))
+)
+
+qq_plot_m2 <- qq_data_m2 %>%
+  ggplot(aes(x = theoretical, y = sample)) +
+  geom_point(alpha = 0.35, color = "#1D3557") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "#D62828") +
+  labs(
+    title = "Normal Q-Q Plot of Standardized Residuals (M2)",
+    x = "Theoretical quantiles",
+    y = "Sample quantiles",
+    caption = str_wrap(
+      paste(
+        "Relational diagnostic figure. Standardized residuals from M2 are compared with",
+        "normal quantiles to assess departures from normality."
+      ),
+      width = 95
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  caption_theme
+
+ggsave(
+  filename = file.path(output_dir, "selection_model_qqplot_m2.png"),
+  plot = qq_plot_m2,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+
+cooks_plot_m2 <- cooks_tbl %>%
+  filter(model == "M2_controls") %>%
+  ggplot(aes(x = reorder(paste(entity, year, sep = "-"), cooks_distance), y = cooks_distance)) +
+  geom_col(fill = "#6A040F") +
+  geom_hline(yintercept = 4 / nrow(m2_data), linetype = "dashed", color = "#005F73") +
+  coord_flip() +
+  labs(
+    title = "Top 10 Cook's Distance Observations (M2)",
+    x = "Country-year",
+    y = "Cook's distance",
+    caption = str_wrap(
+      paste(
+        "Relational diagnostic figure. Bars show the 10 most influential observations in M2.",
+        "The dashed line marks the common 4/n Cook's distance threshold."
+      ),
+      width = 95
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  caption_theme
+
+ggsave(
+  filename = file.path(output_dir, "selection_model_cooks_distance_m2.png"),
+  plot = cooks_plot_m2,
+  width = 8,
+  height = 6,
+  dpi = 300
+)
+
+assumption_summary_tbl <- bp_tbl %>%
+  mutate(
+    heteroskedasticity_flag = ifelse(p_value < 0.05, "Evidence of heteroskedasticity", "No BP evidence at 5%"),
+    standard_error_treatment = case_when(
+      model %in% c("M1_bivariate", "M2_controls") ~ "HC1 robust SE",
+      model == "M3_country_year_FE" ~ "Cluster-robust SE by country",
+      TRUE ~ NA_character_
+    )
+  )
+
+write.csv(
+  assumption_summary_tbl,
+  file.path(output_dir, "selection_model_assumption_summary.csv"),
+  row.names = FALSE
+)
+
 cat("Done. Outputs written to:", normalizePath(output_dir), "\n")
 cat("Main files:\n")
 cat("- selection_model_panel.csv\n")
@@ -575,8 +741,15 @@ cat("- selection_model_fitstats.csv\n")
 cat("- selection_model_descriptive_stats.csv\n")
 cat("- selection_model_descriptive_stats_by_regime.csv\n")
 cat("- selection_model_regression_table.txt/.html\n")
+cat("- selection_model_coefficients_robust.csv\n")
+cat("- selection_model_breusch_pagan.csv\n")
+cat("- selection_model_cooks_distance_top10.csv\n")
+cat("- selection_model_assumption_summary.csv\n")
 cat("- selection_model_aid_scatter.png\n")
 cat("- selection_model_regime_barplot.png\n")
 cat("- selection_model_regime_family_pie.png\n")
 cat("- selection_model_latest_regime_family_pie.png\n")
+cat("- selection_model_residuals_vs_fitted_m2.png\n")
+cat("- selection_model_qqplot_m2.png\n")
+cat("- selection_model_cooks_distance_m2.png\n")
 cat("- selection_model_vif.csv\n")
