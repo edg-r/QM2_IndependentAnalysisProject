@@ -1,0 +1,5 @@
+"model","statistic","df","p_value","heteroskedasticity_flag","standard_error_treatment"
+"M1_bivariate",21.8165854048777,1,0.00000299995683980136,"Evidence of heteroskedasticity","HC1 robust SE"
+"M2_controls",20.1018318183996,5,0.00119591526018842,"Evidence of heteroskedasticity","HC1 robust SE"
+"M3_country_year_FE",119.20875370431,88,0.0150178314465907,"Evidence of heteroskedasticity","Cluster-robust SE by country"
+"M4_country_year_pair_FE",776,388,0.000000000000000000000000000397304734054877,"Evidence of heteroskedasticity","Cluster-robust SE by country"
