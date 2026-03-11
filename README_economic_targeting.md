@@ -84,6 +84,12 @@ Rscript economic_targeting_analysis.R
 
 Substantively, the strictest country-year fixed-effects model implies that, within the same country-year, strategic-sector commitments are still much larger than social-sector commitments.
 
+## Inequality Link
+
+- The current design includes the Gini index as a control, but it does **not** identify whether Chinese aid causally raises inequality over time.
+- What it does show is that the strategic-sector premium persists across the inequality distribution rather than appearing only in low-inequality settings.
+- This supports a careful argument for the memo: Chinese aid is heavily concentrated in sectors that can reinforce unequal growth or elite-centered rents, but the present dataset is better suited to showing **allocation patterns** than causal changes in inequality.
+
 ## Output Files
 
 Generated in `output/economic_targeting/`:
@@ -106,9 +112,12 @@ Generated in `output/economic_targeting/`:
 - `economic_targeting_assumption_summary.csv`
 - `economic_targeting_cooks_distance_top10.csv`
 - `economic_targeting_family_barplot.png`
+- `economic_targeting_regression_coefficient_plot.png`
 - `economic_targeting_sector_barplot.png`
 - `economic_targeting_family_boxplot.png`
 - `economic_targeting_country_year_ratio_hist.png`
+- `economic_targeting_inequality_quartiles.csv`
+- `economic_targeting_inequality_quartile_plot.png`
 - `economic_targeting_residuals_vs_fitted_m2.png`
 - `economic_targeting_qqplot_m2.png`
 - `economic_targeting_cooks_distance_m2.png`

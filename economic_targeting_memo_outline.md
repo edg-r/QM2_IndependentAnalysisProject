@@ -78,6 +78,7 @@ Recommended theory:
 - Strategic sectors such as mining-related industry, energy, and transport can generate direct commercial value for the donor or reduce the cost of moving commodities, energy, and goods.
 - These sectors also align with large, capital-intensive project finance, where Chinese state lenders and firms are especially active.
 - Social sectors can still receive aid, but if China is driven heavily by economic statecraft, the scale of commitments should be much larger in strategic sectors.
+- Because these sectors often generate concentrated rents and rely less on broad social provision, they can also be linked in theory to inequality-preserving or inequality-worsening development paths, even if this dataset does not directly estimate post-aid inequality changes.
 
 Suggested hypotheses:
 
@@ -180,6 +181,7 @@ Interpretation:
 - The effect remains strong even after country and year fixed effects and even in the within-country-year comparison.
 - Because the dependent variable is logged, the coefficients imply a very large multiplicative gap in aid size, not a small marginal difference.
 - A careful conclusion is that Chinese aid is not literally exclusive to strategic sectors, but the **financial scale** of Chinese aid is overwhelmingly concentrated there.
+- The inequality angle should be stated carefully: the targeting pattern is present across low- and high-inequality settings, but this design does not on its own prove that Chinese aid later causes inequality to rise.
 
 Suggested paragraph starter:
 
@@ -200,6 +202,7 @@ Limitations to include:
 - Strategic sectors are defined by sector codes, which is an analytically defensible but still simplified proxy for donor-benefiting investment.
 - The design does not directly observe contract terms, commodity collateral, or project-level bargaining motives.
 - Reverse interpretation is still possible: some sectors may receive large flows because recipient demand is high, not only because China prefers them.
+- The inequality claim is also limited: Gini is observed contemporaneously as a country-year characteristic, so the current analysis cannot establish that Chinese aid increases inequality after the fact.
 
 Conclusion points:
 
@@ -224,8 +227,10 @@ Overall, the evidence suggests that Chinese development finance is best understo
 ### Main memo items
 
 - `Figure 1:` `output/economic_targeting/economic_targeting_family_barplot.png`
-- `Figure 2:` `output/economic_targeting/economic_targeting_family_boxplot.png`
-- `Figure 3:` `output/economic_targeting/economic_targeting_country_year_ratio_hist.png`
+- `Figure 2:` `output/economic_targeting/economic_targeting_regression_coefficient_plot.png`
+- `Figure 3:` `output/economic_targeting/economic_targeting_family_boxplot.png`
+- `Figure 4:` `output/economic_targeting/economic_targeting_inequality_quartile_plot.png`
+- `Figure 5:` `output/economic_targeting/economic_targeting_country_year_ratio_hist.png`
 - `Table 1:` `output/economic_targeting/economic_targeting_regression_table.html`
 - `Table 2:` `output/economic_targeting/economic_targeting_family_breakdown.csv`
 

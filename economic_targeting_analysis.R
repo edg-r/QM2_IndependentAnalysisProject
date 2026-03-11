@@ -497,6 +497,61 @@ write.csv(
   row.names = FALSE
 )
 
+strategic_coef_plot_tbl <- robust_coef_tbl %>%
+  filter(term == "strategic_family") %>%
+  transmute(
+    model = factor(
+      model,
+      levels = c(
+        "M1_bivariate_HC1",
+        "M2_controls_HC1",
+        "M3_country_year_FE_cluster_entity",
+        "M4_country_year_pair_FE_cluster_entity"
+      ),
+      labels = c(
+        "M1: Bivariate",
+        "M2: Controls",
+        "M3: Country + Year FE",
+        "M4: Country-Year FE"
+      )
+    ),
+    estimate = estimate,
+    std.error = std.error,
+    conf.low = estimate - 1.96 * std.error,
+    conf.high = estimate + 1.96 * std.error
+  )
+
+write.csv(
+  strategic_coef_plot_tbl,
+  file.path(output_dir, "economic_targeting_strategic_coefficient_plot_data.csv"),
+  row.names = FALSE
+)
+
+inequality_quartile_tbl <- analysis_panel %>%
+  filter(!is.na(gini)) %>%
+  mutate(
+    gini_quartile = ntile(gini, 4),
+    gini_quartile = factor(
+      gini_quartile,
+      levels = 1:4,
+      labels = c("Lowest inequality", "Low-middle", "High-middle", "Highest inequality")
+    )
+  ) %>%
+  group_by(gini_quartile, sector_family) %>%
+  summarize(
+    observations = n(),
+    mean_log_family_aid = mean(log_family_aid, na.rm = TRUE),
+    median_log_family_aid = median(log_family_aid, na.rm = TRUE),
+    mean_family_aid_usd2021 = mean(family_aid_usd2021, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+write.csv(
+  inequality_quartile_tbl,
+  file.path(output_dir, "economic_targeting_inequality_quartiles.csv"),
+  row.names = FALSE
+)
+
 invisible(capture.output(
   stargazer(
     m1, m2, m3, m4,
@@ -580,6 +635,39 @@ invisible(capture.output(
     out = file.path(output_dir, "economic_targeting_descriptive_stats.html")
   )
 ))
+
+strategic_coef_plot <- strategic_coef_plot_tbl %>%
+  ggplot(aes(x = model, y = estimate)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = slate_gray) +
+  geom_pointrange(
+    aes(ymin = conf.low, ymax = conf.high),
+    color = ore_copper,
+    linewidth = 0.8
+  ) +
+  coord_flip() +
+  labs(
+    title = "The Strategic-Sector Premium Survives Every Regression Specification",
+    x = NULL,
+    y = "Coefficient on strategic sector family",
+    caption = str_wrap(
+      paste(
+        "Points show the estimated coefficient on strategic_family and lines show",
+        "95% confidence intervals built from the robust or cluster-robust standard errors",
+        "used in the exported regression table."
+      ),
+      width = 95
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  caption_theme
+
+ggsave(
+  filename = file.path(output_dir, "economic_targeting_regression_coefficient_plot.png"),
+  plot = strategic_coef_plot,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
 
 family_barplot <- family_breakdown_tbl %>%
   mutate(
@@ -700,6 +788,37 @@ ratio_hist <- country_year_ratio_tbl %>%
 ggsave(
   filename = file.path(output_dir, "economic_targeting_country_year_ratio_hist.png"),
   plot = ratio_hist,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+
+inequality_quartile_plot <- inequality_quartile_tbl %>%
+  mutate(sector_family = factor(sector_family, levels = c("Social", "Strategic"))) %>%
+  ggplot(aes(x = gini_quartile, y = mean_log_family_aid, color = sector_family, group = sector_family)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2.8) +
+  labs(
+    title = "Strategic Aid Remains Larger Across the Inequality Distribution",
+    x = "Recipient-country inequality quartile",
+    y = "Mean log(1 + family-level Chinese aid)",
+    color = "Sector family",
+    caption = str_wrap(
+      paste(
+        "Quartiles are based on the OWID Gini index in the funded regression sample.",
+        "This figure relates the targeting pattern to inequality levels, but it does not by",
+        "itself identify a causal effect of Chinese aid on later inequality."
+      ),
+      width = 95
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  scale_color_manual(values = family_palette[c("Social", "Strategic")]) +
+  caption_theme
+
+ggsave(
+  filename = file.path(output_dir, "economic_targeting_inequality_quartile_plot.png"),
+  plot = inequality_quartile_plot,
   width = 8,
   height = 5,
   dpi = 300
