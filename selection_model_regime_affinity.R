@@ -570,10 +570,11 @@ regime_barplot <- analysis_panel %>%
     y = "Average log(1 + Chinese aid in constant USD 2021)",
     caption = str_wrap(
       paste(
-        "Descriptive figure. Bars show the mean of log(1 + annual Chinese aid) by",
-        "OWID political-regime category. Source variable: political-regime",
-        "(0 = closed autocracy, 1 = electoral autocracy, 2 = electoral democracy,",
-        "3 = liberal democracy)."
+        "Descriptive figure. Each bar reports the mean of log(1 + annual Chinese",
+        "aid in constant 2021 USD) across country-year observations from 2013 to",
+        "2021, grouped by OWID political-regime category. Country-years without",
+        "recorded AidData disbursements are coded as zero, so higher bars indicate",
+        "larger average aid receipts. Source variable: political-regime."
       ),
       width = 95
     )
