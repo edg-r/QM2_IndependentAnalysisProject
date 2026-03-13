@@ -1,3 +1,4 @@
 "model","statistic","df","p_value","heteroskedasticity_flag","standard_error_treatment"
 "CS_M1_bivariate",0.994273516314578,1,0.318700128093471,"No BP evidence at 5%","HC1 robust SE"
 "CS_M2_controls",5.78367876657589,5,0.327840230150812,"No BP evidence at 5%","HC1 robust SE"
+"CS_M2_controls_positive_aid",11.0460322403648,5,0.0504748999685814,"No BP evidence at 5%","HC1 robust SE"

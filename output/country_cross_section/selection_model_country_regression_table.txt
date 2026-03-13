@@ -1,36 +1,37 @@
 
 Chinese Aid and Regime Type (Country-Level Cross-Section)
-===================================================================================
-                                              Dependent variable:                  
-                             ------------------------------------------------------
-                             Log(1 + mean annual Chinese aid in constant USD 2021) 
-                                      Bivariate                   Controls         
-                                         (1)                        (2)            
------------------------------------------------------------------------------------
-Autocracy score                       4.186***                     0.948           
-                                       (0.769)                    (1.171)          
-                                                                                   
-Log GDP per capita                                               -2.591***         
-                                                                  (0.960)          
-                                                                                   
-Corruption Perceptions Index                                     -0.207***         
-                                                                  (0.061)          
-                                                                                   
-Extreme poverty share                                             -0.111**         
-                                                                  (0.046)          
-                                                                                   
-Gini index                                                       29.888***         
-                                                                  (8.620)          
-                                                                                   
-Constant                              7.642***                   35.808***         
-                                       (1.165)                    (9.093)          
-                                                                                   
------------------------------------------------------------------------------------
-Unit of analysis                       Country                    Country          
-Years collapsed                    2013-2021 mean              2013-2021 mean      
-Standard errors                          HC1                        HC1            
-Observations                             174                        135            
-R2                                      0.202                      0.594           
-Adjusted R2                             0.197                      0.578           
-===================================================================================
-Note:                                                   *p<0.1; **p<0.05; ***p<0.01
+======================================================================================
+                                                Dependent variable:                   
+                             ---------------------------------------------------------
+                               Log(1 + mean annual Chinese aid in constant USD 2021)  
+                               Bivariate       Controls    Controls, positive-aid only
+                                  (1)            (2)                   (3)            
+--------------------------------------------------------------------------------------
+Autocracy score                 4.186***        0.948               1.083***          
+                                (0.769)        (1.171)               (0.397)          
+                                                                                      
+Log GDP per capita                            -2.591***             0.812***          
+                                               (0.960)               (0.276)          
+                                                                                      
+Corruption Perceptions Index                  -0.207***              -0.009           
+                                               (0.061)               (0.026)          
+                                                                                      
+Extreme poverty share                          -0.111**               0.022           
+                                               (0.046)               (0.013)          
+                                                                                      
+Gini index                                    29.888***               1.008           
+                                               (8.620)               (3.314)          
+                                                                                      
+Constant                        7.642***      35.808***             9.717***          
+                                (1.165)        (9.093)               (2.533)          
+                                                                                      
+--------------------------------------------------------------------------------------
+Unit of analysis                Country        Country               Country          
+Years collapsed              2013-2021 mean 2013-2021 mean       2013-2021 mean       
+Sample                       All countries  All countries      Aid recipients only    
+Standard errors                   HC1            HC1                   HC1            
+Observations                      174            135                   92             
+R2                               0.202          0.594                 0.165           
+Adjusted R2                      0.197          0.578                 0.117           
+======================================================================================
+Note:                                                      *p<0.1; **p<0.05; ***p<0.01

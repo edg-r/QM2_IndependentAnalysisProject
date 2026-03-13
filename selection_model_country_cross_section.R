@@ -367,6 +367,22 @@ cs_m2 <- lm(
   data = cs_m2_data
 )
 
+cs_m2_positive_aid_data <- country_cross_section %>%
+  filter(
+    china_aid_usd2021 > 0,
+    !is.na(log_china_aid),
+    !is.na(autocracy_score),
+    !is.na(log_gdp_pc),
+    !is.na(cpi),
+    !is.na(extreme_poverty),
+    !is.na(gini)
+  )
+
+cs_m2_positive_aid <- lm(
+  log_china_aid ~ autocracy_score + log_gdp_pc + cpi + extreme_poverty + gini,
+  data = cs_m2_positive_aid_data
+)
+
 main_controls <- c("autocracy_score", "log_gdp_pc", "cpi", "extreme_poverty", "gini")
 vif_tbl <- compute_vif(cs_m2_data, main_controls)
 write.csv(
@@ -377,10 +393,12 @@ write.csv(
 
 vcov_cs_m1_hc1 <- vcov_hc1(cs_m1)
 vcov_cs_m2_hc1 <- vcov_hc1(cs_m2)
+vcov_cs_m2_positive_aid_hc1 <- vcov_hc1(cs_m2_positive_aid)
 
 cross_section_robust_coef_tbl <- bind_rows(
   tidy_with_vcov(cs_m1, vcov_cs_m1_hc1, "CS_M1_bivariate_HC1"),
-  tidy_with_vcov(cs_m2, vcov_cs_m2_hc1, "CS_M2_controls_HC1")
+  tidy_with_vcov(cs_m2, vcov_cs_m2_hc1, "CS_M2_controls_HC1"),
+  tidy_with_vcov(cs_m2_positive_aid, vcov_cs_m2_positive_aid_hc1, "CS_M2_controls_positive_aid_HC1")
 )
 
 write.csv(
@@ -391,7 +409,8 @@ write.csv(
 
 cross_section_coef_tbl <- bind_rows(
   tidy(cs_m1, conf.int = TRUE) %>% mutate(model = "CS_M1_bivariate"),
-  tidy(cs_m2, conf.int = TRUE) %>% mutate(model = "CS_M2_controls")
+  tidy(cs_m2, conf.int = TRUE) %>% mutate(model = "CS_M2_controls"),
+  tidy(cs_m2_positive_aid, conf.int = TRUE) %>% mutate(model = "CS_M2_controls_positive_aid")
 )
 
 write.csv(
@@ -402,7 +421,8 @@ write.csv(
 
 cross_section_fit_tbl <- bind_rows(
   glance(cs_m1) %>% mutate(model = "CS_M1_bivariate"),
-  glance(cs_m2) %>% mutate(model = "CS_M2_controls")
+  glance(cs_m2) %>% mutate(model = "CS_M2_controls"),
+  glance(cs_m2_positive_aid) %>% mutate(model = "CS_M2_controls_positive_aid")
 )
 
 write.csv(
@@ -413,7 +433,8 @@ write.csv(
 
 bp_tbl <- bind_rows(
   breusch_pagan_test(cs_m1) %>% mutate(model = "CS_M1_bivariate"),
-  breusch_pagan_test(cs_m2) %>% mutate(model = "CS_M2_controls")
+  breusch_pagan_test(cs_m2) %>% mutate(model = "CS_M2_controls"),
+  breusch_pagan_test(cs_m2_positive_aid) %>% mutate(model = "CS_M2_controls_positive_aid")
 ) %>%
   select(model, statistic, df, p_value)
 
@@ -425,7 +446,12 @@ write.csv(
 
 cooks_tbl <- bind_rows(
   cooks_distance_table(cs_m1, cs_m1_data, "CS_M1_bivariate"),
-  cooks_distance_table(cs_m2, cs_m2_data, "CS_M2_controls")
+  cooks_distance_table(cs_m2, cs_m2_data, "CS_M2_controls"),
+  cooks_distance_table(
+    cs_m2_positive_aid,
+    cs_m2_positive_aid_data,
+    "CS_M2_controls_positive_aid"
+  )
 )
 
 write.csv(
@@ -436,11 +462,11 @@ write.csv(
 
 invisible(capture.output(
   stargazer(
-    cs_m1, cs_m2,
+    cs_m1, cs_m2, cs_m2_positive_aid,
     type = "text",
     title = "Chinese Aid and Regime Type (Country-Level Cross-Section)",
     dep.var.labels = "Log(1 + mean annual Chinese aid in constant USD 2021)",
-    column.labels = c("Bivariate", "Controls"),
+    column.labels = c("Bivariate", "Controls", "Controls, positive-aid only"),
     covariate.labels = c(
       "Autocracy score",
       "Log GDP per capita",
@@ -450,13 +476,15 @@ invisible(capture.output(
     ),
     omit.stat = c("f", "ser"),
     add.lines = list(
-      c("Unit of analysis", "Country", "Country"),
-      c("Years collapsed", "2013-2021 mean", "2013-2021 mean"),
-      c("Standard errors", "HC1", "HC1")
+      c("Unit of analysis", "Country", "Country", "Country"),
+      c("Years collapsed", "2013-2021 mean", "2013-2021 mean", "2013-2021 mean"),
+      c("Sample", "All countries", "All countries", "Aid recipients only"),
+      c("Standard errors", "HC1", "HC1", "HC1")
     ),
     se = list(
       sqrt(diag(vcov_cs_m1_hc1)),
-      sqrt(diag(vcov_cs_m2_hc1))
+      sqrt(diag(vcov_cs_m2_hc1)),
+      sqrt(diag(vcov_cs_m2_positive_aid_hc1))
     ),
     out = file.path(output_dir, "selection_model_country_regression_table.txt")
   )
@@ -464,11 +492,11 @@ invisible(capture.output(
 
 invisible(capture.output(
   stargazer(
-    cs_m1, cs_m2,
+    cs_m1, cs_m2, cs_m2_positive_aid,
     type = "html",
     title = "Chinese Aid and Regime Type (Country-Level Cross-Section)",
     dep.var.labels = "Log(1 + mean annual Chinese aid in constant USD 2021)",
-    column.labels = c("Bivariate", "Controls"),
+    column.labels = c("Bivariate", "Controls", "Controls, positive-aid only"),
     covariate.labels = c(
       "Autocracy score",
       "Log GDP per capita",
@@ -478,13 +506,15 @@ invisible(capture.output(
     ),
     omit.stat = c("f", "ser"),
     add.lines = list(
-      c("Unit of analysis", "Country", "Country"),
-      c("Years collapsed", "2013-2021 mean", "2013-2021 mean"),
-      c("Standard errors", "HC1", "HC1")
+      c("Unit of analysis", "Country", "Country", "Country"),
+      c("Years collapsed", "2013-2021 mean", "2013-2021 mean", "2013-2021 mean"),
+      c("Sample", "All countries", "All countries", "Aid recipients only"),
+      c("Standard errors", "HC1", "HC1", "HC1")
     ),
     se = list(
       sqrt(diag(vcov_cs_m1_hc1)),
-      sqrt(diag(vcov_cs_m2_hc1))
+      sqrt(diag(vcov_cs_m2_hc1)),
+      sqrt(diag(vcov_cs_m2_positive_aid_hc1))
     ),
     out = file.path(output_dir, "selection_model_country_regression_table.html")
   )
@@ -827,11 +857,15 @@ comparison_tbl <- bind_rows(
     ),
   cross_section_robust_coef_tbl %>%
     filter(
-      model %in% c("CS_M1_bivariate_HC1", "CS_M2_controls_HC1"),
+      model %in% c(
+        "CS_M1_bivariate_HC1",
+        "CS_M2_controls_HC1",
+        "CS_M2_controls_positive_aid_HC1"
+      ),
       term == "autocracy_score"
     ) %>%
     transmute(
-      sample = c("Country bivariate", "Country controls"),
+      sample = c("Country bivariate", "Country controls", "Country controls, positive-aid only"),
       coefficient = estimate,
       std_error = std.error,
       p_value = p.value
@@ -844,7 +878,7 @@ comparison_tbl$r_squared <- c(
     panel_fit$model
   )],
   cross_section_fit_tbl$r.squared[match(
-    c("CS_M1_bivariate", "CS_M2_controls"),
+    c("CS_M1_bivariate", "CS_M2_controls", "CS_M2_controls_positive_aid"),
     cross_section_fit_tbl$model
   )]
 )
