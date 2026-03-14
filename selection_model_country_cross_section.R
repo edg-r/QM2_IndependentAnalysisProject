@@ -11,7 +11,7 @@ options(scipen = 999)
 caption_theme <- theme(
   plot.caption = element_text(hjust = 0, size = 9, lineheight = 1.1),
   plot.caption.position = "plot",
-  plot.margin = margin(12, 18, 18, 12)
+  plot.margin = margin(12, 18, 24, 44)
 )
 
 china_red <- "#DE2910"
@@ -564,7 +564,7 @@ regime_barplot <- country_cross_section %>%
   labs(
     title = "Average Chinese Aid by Regime Type (Country Means, 2013-2021)",
     x = "Regime type",
-    y = "Average log(1 + mean annual Chinese aid in constant USD 2021)",
+    y = "Average log(1 + mean annual Chinese aid,\nconstant USD 2021)",
     caption = str_wrap(
       paste(
         "Descriptive figure. Each bar reports the mean of log(1 + mean annual Chinese aid",
@@ -575,14 +575,18 @@ regime_barplot <- country_cross_section %>%
     )
   ) +
   theme_minimal(base_size = 12) +
+  theme(
+    axis.title.y = element_text(lineheight = 0.95, margin = margin(r = 12)),
+    axis.title.x = element_text(margin = margin(t = 10))
+  ) +
   scale_fill_manual(values = regime_gradient, guide = "none") +
   caption_theme
 
 ggsave(
   filename = file.path(output_dir, "selection_model_country_regime_barplot.png"),
   plot = regime_barplot,
-  width = 8,
-  height = 5,
+  width = 8.8,
+  height = 5.6,
   dpi = 300
 )
 
@@ -635,7 +639,7 @@ aid_scatter <- country_cross_section %>%
   labs(
     title = "Bivariate Relationship Between Autocracy and Chinese Aid",
     x = "Regime type",
-    y = "Log(1 + mean annual Chinese aid in constant USD 2021)",
+    y = "Log(1 + mean annual Chinese aid,\nconstant USD 2021)",
     caption = str_wrap(
       paste(
         "Relational figure. Points are countries collapsed to one observation each using",
@@ -645,13 +649,17 @@ aid_scatter <- country_cross_section %>%
     )
   ) +
   theme_minimal(base_size = 12) +
+  theme(
+    axis.title.y = element_text(lineheight = 0.95, margin = margin(r = 12)),
+    axis.title.x = element_text(margin = margin(t = 10))
+  ) +
   caption_theme
 
 ggsave(
   filename = file.path(output_dir, "selection_model_country_aid_scatter.png"),
   plot = aid_scatter,
-  width = 8,
-  height = 5,
+  width = 8.8,
+  height = 5.6,
   dpi = 300
 )
 

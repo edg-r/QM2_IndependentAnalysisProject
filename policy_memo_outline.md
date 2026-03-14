@@ -143,22 +143,30 @@ Core job of this section:
 - Justify the controls.
 - Mention diagnostics and current limits.
 
-Current code structure:
-- `M1:` bivariate OLS of `log_china_aid ~ autocracy_score`
-- `M2:` OLS with controls
-- `M3:` OLS with country and year fixed effects
+Current code structure for the cross-sectional version:
+- `CS_M1:` bivariate OLS of `log_china_aid ~ autocracy_score`
+- `CS_M2:` country-level OLS with controls
+- `CS_M3:` country-level OLS with controls, positive-aid recipients only
 
 Interpretation strategy:
-- `M1` shows the unconditional relationship.
-- `M2` tests whether the relationship survives adjustment for major observable confounders.
-- `M3` is the strictest model in the current code because it compares changes within countries over time while accounting for common year shocks.
+- `CS_M1` shows the unconditional cross-country relationship.
+- `CS_M2` tests whether the relationship survives adjustment for major observable confounders in the full sample.
+- `CS_M3` tests the intensive-margin version of the argument by examining aid amounts only among countries that actually received positive Chinese aid.
 
-Diagnostics currently available:
-- Variance inflation factors are moderate, with the highest VIF around `5.45` for logged GDP per capita.
+Gauss-Markov diagnostics currently available for the cross-sectional model:
+- No evidence of severe multicollinearity. VIF values range from about `1.25` to `4.49`, with the highest value on logged GDP per capita.
+- No strong evidence of heteroskedasticity at the 5 percent level in the Breusch-Pagan tests:
+  - `CS_M1:` `p = 0.319`
+  - `CS_M2:` `p = 0.328`
+  - `CS_M3:` `p = 0.0505`
+- Because the positive-aid-only model is borderline on the heteroskedasticity test, the write-up should still note that all models use `HC1` robust standard errors.
+- The residuals-versus-fitted plot for the controlled model suggests some curvature and several large residuals, so linear functional form is only an approximation rather than a perfectly clean fit.
+- Cook's distance diagnostics flag several influential country cases in the controlled cross-section, especially `Eswatini`, `China`, `Congo`, `Guatemala`, and `Cape Verde`.
 
-Important revision note for the final submission:
-- The assignment requires a cross-sectional design, so the final memo should likely replace the fixed-effects discussion with a cross-sectional multiple regression using one observation per country.
-- The appendix still needs fuller Gauss-Markov diagnostics beyond VIF, such as residual plots and a heteroskedasticity check.
+Important interpretation note for the final submission:
+- The observable diagnostics support the no-perfect-multicollinearity and approximate homoskedasticity conditions reasonably well, but they do not prove exogeneity.
+- Random sampling and zero conditional mean should be framed as assumptions that may be threatened by omitted variables such as strategic alignment, trade exposure, or geopolitical relevance.
+- If you include a short appendix paragraph, say that the Gauss-Markov checks are broadly acceptable for the cross-sectional OLS framework, but the residual plots and influential cases justify cautious interpretation.
 
 ### 6. Findings
 
@@ -170,25 +178,25 @@ Core job of this section:
 - Keep the interpretation substantive but cautious.
 
 Results to report:
-- `M1:` `autocracy_score = 3.39`, `p < 0.001`
-- `M2:` `autocracy_score = 3.31`, `p < 0.001`
-- `M3:` `autocracy_score = 1.84`, `p = 0.108`, `95% CI = [-0.41, 4.09]`
+- `CS_M1:` `autocracy_score = 4.186`, `p < 0.001`
+- `CS_M2:` `autocracy_score = 0.948`, `p = 0.420`
+- `CS_M3:` `autocracy_score = 1.083`, `p = 0.0077`
 
 Interpretation to emphasize:
-- In the bivariate and controlled models, more authoritarian countries appear to receive more Chinese aid.
-- The coefficient remains positive after adding controls, which suggests the relationship is not explained away by the observed covariates alone.
-- In the fixed-effects model, the estimate remains positive but loses statistical significance, which weakens the claim that changes toward greater authoritarianism within a country are associated with higher aid receipts.
-- A careful conclusion is that authoritarian regime type is strongly associated with Chinese aid in between-country comparisons, but the current strongest specification does not provide decisive evidence of a robust causal effect.
+- In the bivariate country-level model, more authoritarian countries appear to receive more Chinese aid on average.
+- In the full-sample controlled model, the coefficient remains positive but loses statistical significance.
+- In the positive-aid-only model, the coefficient is again positive and statistically significant, which fits the argument that autocracy may matter more for the amount of aid conditional on receiving aid than for selection into aid overall.
+- A careful conclusion is that authoritarian regime type is associated with higher aid in simpler comparisons and among recipient countries, but the full-sample cross-sectional evidence is not strong enough to claim a stable relationship across all countries.
 
 Secondary findings you can mention briefly:
-- In `M2`, higher GDP per capita is associated with less Chinese aid.
-- In `M2`, less-corrupt countries appear to receive less aid because the CPI coefficient is negative.
-- In `M2`, inequality is positively associated with aid.
-- These control results become unstable and mostly insignificant in the fixed-effects model.
+- In `CS_M2`, higher GDP per capita is associated with less Chinese aid.
+- In `CS_M2`, less-corrupt countries appear to receive less aid because the CPI coefficient is negative.
+- In `CS_M2`, inequality is positively associated with aid.
+- In `CS_M3`, several controls weaken or change sign, so the positive-aid-only model should be presented as a conditional robustness result rather than the only result that matters.
 
 Possible paragraph starter:
 
-The main pattern in the results is straightforward: countries with more authoritarian regimes receive significantly more Chinese aid in simpler specifications, but the magnitude of that relationship falls and the estimate loses statistical significance in the most demanding specification.
+The main pattern in the results is straightforward: countries with more authoritarian regimes receive significantly more Chinese aid in the bivariate cross-section, but that relationship falls and loses statistical significance once controls are added across the full sample. At the same time, among countries that do receive Chinese aid, autocracy remains positively and significantly associated with larger average aid amounts.
 
 ### 7. Limitations and Conclusion
 
@@ -201,12 +209,14 @@ Core job of this section:
 Limitations to include:
 - Potential omitted variable bias from strategic alignment, natural resources, trade exposure, or geopolitical relevance.
 - Measurement limits in both the aid data and the regime indicators.
-- The current script is panel-based, which is not aligned with the assignment's cross-sectional requirement.
+- The cross-sectional design collapses away year-to-year variation and cannot use within-country changes over time.
 - Reverse causality is still possible if aid affects domestic political conditions.
+- Diagnostic checks show some influential country cases and mild functional-form concerns in the controlled model.
 
 Conclusion points:
 - Chinese aid appears more common in authoritarian settings in simple comparisons.
-- The evidence becomes weaker under stricter specification.
+- The evidence becomes weaker in the full-sample controlled model.
+- Among countries that received positive aid, more autocratic regimes appear to receive larger amounts on average.
 - The safest conclusion is that regime type is correlated with Chinese aid allocation, but stronger causal claims require a design that better addresses unobserved confounding.
 
 Possible closing sentence:
