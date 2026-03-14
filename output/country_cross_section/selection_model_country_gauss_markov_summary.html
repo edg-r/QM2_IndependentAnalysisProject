@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Gauss-Markov Assumption Summary</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #1f2933; }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    .subtitle { margin-top: 0; margin-bottom: 18px; color: #52606d; max-width: 900px; }
+    table { border-collapse: collapse; width: 100%; max-width: 1100px; }
+    th, td { border: 1px solid #d9e2ec; padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: #f0f4f8; font-weight: 700; }
+    tr:nth-child(even) { background: #f8fafc; }
+  </style>
+</head>
+<body>
+  <h1>Gauss-Markov Assumption Summary</h1>
+  <p class="subtitle">Concise diagnostic summary for the country-level cross-section models.</p>
+  <table>
+    <thead><tr><th>Assumption</th><th>Evidence in this project</th><th>Summary</th><th>Inference note</th></tr></thead>
+    <tbody><tr><td>Linearity in parameters</td><td>Residuals-vs-fitted plot is produced for the controlled cross-section model and the outcome is log(1 + mean aid).</td><td>Specification is linear in coefficients, with functional form judged mainly from the residual plot.</td><td>Linear OLS is a concise baseline, but nonlinear misspecification remains possible.</td></tr><tr><td>Independent sampling / errors</td><td>Each country enters once after averaging 2013-2021 values, but the sample is still observational rather than randomly assigned.</td><td>The cross-country sample is observational rather than randomly assigned, so independence is only approximate.</td><td>Interpret the cross-section as descriptive association across countries.</td></tr><tr><td>No perfect multicollinearity</td><td>VIF check on M2 controls; max VIF = 4.49.</td><td>No strong multicollinearity signal among included controls.</td><td>Coefficients are separately estimable without obvious collinearity failure.</td></tr><tr><td>Zero conditional mean</td><td>Not directly testable; the model adds standard macro controls but cannot eliminate all omitted variables.</td><td>This remains a substantive identification assumption rather than something verified statistically.</td><td>Treat estimates as conditional associations, not strong causal effects.</td></tr><tr><td>Homoskedasticity</td><td>Breusch-Pagan results: All-country M1 p = 0.319; All-country M2 p = 0.328; Recipient-only M2 p = 0.050.</td><td>No BP rejection at the 5% level; one specification is borderline.</td><td>Keeping HC1 robust SE is still the conservative choice.</td></tr></tbody>
+  </table>
+</body>
+</html>

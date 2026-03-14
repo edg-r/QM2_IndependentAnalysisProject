@@ -67,6 +67,8 @@ Generated in `output/`:
 - `selection_model_breusch_pagan.csv` (heteroskedasticity test results)
 - `selection_model_cooks_distance_top10.csv` (most influential observations)
 - `selection_model_assumption_summary.csv` (short assumptions diagnostic summary)
+- `selection_model_gauss_markov_summary.html` (concise Gauss-Markov assumptions table)
+- `selection_model_m2_diagnostics.html` (simple HTML table for VIF plus fitted/residual values)
 - `selection_model_vif.csv` (multicollinearity check for M2 controls)
 - `selection_model_aid_scatter.png` (bivariate fitted relationship)
 - `selection_model_regime_barplot.png` (descriptive figure)

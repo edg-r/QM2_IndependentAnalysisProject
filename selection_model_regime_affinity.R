@@ -77,6 +77,202 @@ compute_vif <- function(data, vars) {
   bind_rows(out)
 }
 
+format_p_value <- function(x) {
+  ifelse(
+    is.na(x),
+    NA_character_,
+    ifelse(x < 0.001, "< 0.001", sprintf("%.3f", x))
+  )
+}
+
+html_escape <- function(x) {
+  x <- as.character(x)
+  x <- gsub("&", "&amp;", x, fixed = TRUE)
+  x <- gsub("<", "&lt;", x, fixed = TRUE)
+  gsub(">", "&gt;", x, fixed = TRUE)
+}
+
+write_simple_html_table <- function(tbl, title, subtitle = NULL, out) {
+  header_cells <- paste0("<th>", html_escape(names(tbl)), "</th>", collapse = "")
+  body_rows <- apply(tbl, 1, function(row) {
+    cells <- paste0("<td>", html_escape(row), "</td>", collapse = "")
+    paste0("<tr>", cells, "</tr>")
+  })
+
+  subtitle_html <- ""
+  if (!is.null(subtitle) && nzchar(subtitle)) {
+    subtitle_html <- paste0("<p class=\"subtitle\">", html_escape(subtitle), "</p>")
+  }
+
+  html <- c(
+    "<!DOCTYPE html>",
+    "<html lang=\"en\">",
+    "<head>",
+    "  <meta charset=\"utf-8\">",
+    paste0("  <title>", html_escape(title), "</title>"),
+    "  <style>",
+    "    body { font-family: Arial, sans-serif; margin: 32px; color: #1f2933; }",
+    "    h1 { font-size: 24px; margin-bottom: 8px; }",
+    "    .subtitle { margin-top: 0; margin-bottom: 18px; color: #52606d; max-width: 900px; }",
+    "    table { border-collapse: collapse; width: 100%; max-width: 1100px; }",
+    "    th, td { border: 1px solid #d9e2ec; padding: 10px 12px; text-align: left; vertical-align: top; }",
+    "    th { background: #f0f4f8; font-weight: 700; }",
+    "    tr:nth-child(even) { background: #f8fafc; }",
+    "  </style>",
+    "</head>",
+    "<body>",
+    paste0("  <h1>", html_escape(title), "</h1>"),
+    paste0("  ", subtitle_html),
+    "  <table>",
+    paste0("    <thead><tr>", header_cells, "</tr></thead>"),
+    paste0("    <tbody>", paste(body_rows, collapse = ""), "</tbody>"),
+    "  </table>",
+    "</body>",
+    "</html>"
+  )
+
+  writeLines(html, out)
+}
+
+format_numeric_columns <- function(tbl, digits = 3) {
+  tbl[] <- lapply(tbl, function(col) {
+    if (is.numeric(col)) {
+      sprintf(paste0("%.", digits, "f"), col)
+    } else {
+      as.character(col)
+    }
+  })
+  tbl
+}
+
+compute_outlier_diagnostics <- function(model, data, id_cols) {
+  n <- nobs(model)
+  k <- length(coef(model)) - 1
+  leverage_cutoff <- 2 * (k + 1) / n
+  cooks_cutoff <- 4 / (n - k - 1)
+  dffits_cutoff <- 2 * sqrt(k / n)
+
+  ids <- data[id_cols]
+  diag_tbl <- data.frame(
+    ids,
+    studentized_residual = rstudent(model),
+    leverage = hatvalues(model),
+    cooks_distance = cooks.distance(model),
+    dffits = dffits(model),
+    row.names = NULL
+  ) %>%
+    mutate(
+      abs_studentized_residual = abs(studentized_residual),
+      abs_dffits = abs(dffits),
+      outlier_studentized = abs_studentized_residual > 2,
+      outlier_leverage = leverage > leverage_cutoff,
+      outlier_cooks = cooks_distance > cooks_cutoff,
+      outlier_dffits = abs_dffits > dffits_cutoff,
+      outlier_any = outlier_studentized | outlier_leverage | outlier_cooks | outlier_dffits,
+      outlier_all = outlier_studentized & outlier_leverage & outlier_cooks & outlier_dffits
+    )
+
+  summary_tbl <- data.frame(
+    Metric = c(
+      "Model observations",
+      "k (predictors)",
+      "Threshold |studentized residual|",
+      "Threshold leverage",
+      "Threshold Cook's D",
+      "Threshold |DFFITS|",
+      "Flagged outliers (any threshold)",
+      "Flagged egregious outliers (all thresholds)"
+    ),
+    Value = c(
+      as.character(n),
+      as.character(k),
+      "> 2",
+      sprintf("> %.6f", leverage_cutoff),
+      sprintf("> %.6f", cooks_cutoff),
+      sprintf("> %.6f", dffits_cutoff),
+      as.character(sum(diag_tbl$outlier_any, na.rm = TRUE)),
+      as.character(sum(diag_tbl$outlier_all, na.rm = TRUE))
+    ),
+    check.names = FALSE
+  )
+
+  list(
+    summary_tbl = summary_tbl,
+    diagnostics_tbl = diag_tbl,
+    leverage_cutoff = leverage_cutoff,
+    dffits_cutoff = dffits_cutoff
+  )
+}
+
+write_diagnostics_html <- function(
+  vif_tbl,
+  bp_tbl,
+  diagnostic_tbl,
+  influence_tbl,
+  outlier_summary_tbl,
+  flagged_outliers_tbl,
+  title,
+  out
+) {
+  vif_html <- write_simple_html_fragment(format_numeric_columns(vif_tbl))
+  bp_html <- write_simple_html_fragment(format_numeric_columns(bp_tbl))
+  diagnostic_html <- write_simple_html_fragment(format_numeric_columns(diagnostic_tbl))
+  influence_html <- write_simple_html_fragment(format_numeric_columns(influence_tbl))
+  outlier_summary_html <- write_simple_html_fragment(outlier_summary_tbl)
+  flagged_outliers_html <- write_simple_html_fragment(format_numeric_columns(flagged_outliers_tbl))
+
+  html <- c(
+    "<!DOCTYPE html>",
+    "<html lang=\"en\">",
+    "<head>",
+    "  <meta charset=\"utf-8\">",
+    paste0("  <title>", html_escape(title), "</title>"),
+    "  <style>",
+    "    body { font-family: Arial, sans-serif; margin: 32px; color: #1f2933; }",
+    "    h1 { font-size: 24px; margin-bottom: 16px; }",
+    "    h2 { font-size: 18px; margin: 24px 0 10px; }",
+    "    .table-wrap { max-width: 1100px; max-height: 520px; overflow: auto; border: 1px solid #d9e2ec; }",
+    "    table { border-collapse: collapse; width: 100%; }",
+    "    th, td { border: 1px solid #d9e2ec; padding: 8px 10px; text-align: left; vertical-align: top; font-size: 13px; }",
+    "    th { background: #f0f4f8; font-weight: 700; position: sticky; top: 0; }",
+    "    tr:nth-child(even) { background: #f8fafc; }",
+    "  </style>",
+    "</head>",
+    "<body>",
+    paste0("  <h1>", html_escape(title), "</h1>"),
+    "  <h2>Outlier Summary</h2>",
+    paste0("  <div class=\"table-wrap\">", outlier_summary_html, "</div>"),
+    "  <h2>Flagged Outliers</h2>",
+    paste0("  <div class=\"table-wrap\">", flagged_outliers_html, "</div>"),
+    "  <h2>VIF Values</h2>",
+    paste0("  <div class=\"table-wrap\">", vif_html, "</div>"),
+    "  <h2>Breusch-Pagan Test</h2>",
+    paste0("  <div class=\"table-wrap\">", bp_html, "</div>"),
+    "  <h2>Fitted Values and Residuals</h2>",
+    paste0("  <div class=\"table-wrap\">", diagnostic_html, "</div>"),
+    "  <h2>Top Cook's Distance Values</h2>",
+    paste0("  <div class=\"table-wrap\">", influence_html, "</div>"),
+    "</body>",
+    "</html>"
+  )
+
+  writeLines(html, out)
+}
+
+write_simple_html_fragment <- function(tbl) {
+  header_cells <- paste0("<th>", html_escape(names(tbl)), "</th>", collapse = "")
+  body_rows <- apply(tbl, 1, function(row) {
+    cells <- paste0("<td>", html_escape(row), "</td>", collapse = "")
+    paste0("<tr>", cells, "</tr>")
+  })
+
+  paste0(
+    "<table><thead><tr>", header_cells, "</tr></thead><tbody>",
+    paste(body_rows, collapse = ""),
+    "</tbody></table>"
+  )
+}
+
 # Breusch-Pagan test implemented from the auxiliary regression n * R^2.
 breusch_pagan_test <- function(model) {
   e2 <- resid(model)^2
@@ -736,10 +932,119 @@ ggsave(
 )
 
 diagnostic_data_m2 <- data.frame(
+  entity = m2_data$entity,
+  year = m2_data$year,
   fitted = fitted(m2),
   residual = resid(m2),
   std_residual = rstandard(m2),
-  cooks_distance = cooks.distance(m2)
+  cooks_distance = cooks.distance(m2),
+  above_cook_cutoff = cooks.distance(m2) > (4 / nrow(m2_data))
+)
+
+diagnostic_influence_m2 <- diagnostic_data_m2 %>%
+  arrange(desc(cooks_distance)) %>%
+  slice_head(n = 10)
+
+outlier_diagnostics_m2 <- compute_outlier_diagnostics(
+  model = m2,
+  data = m2_data,
+  id_cols = c("entity", "year")
+)
+
+flagged_outliers_m2 <- outlier_diagnostics_m2$diagnostics_tbl %>%
+  filter(outlier_any) %>%
+  arrange(desc(abs_dffits), desc(leverage))
+
+if (nrow(flagged_outliers_m2) == 0) {
+  flagged_outliers_m2 <- data.frame(
+    entity = "None",
+    year = NA,
+    studentized_residual = NA,
+    leverage = NA,
+    cooks_distance = NA,
+    dffits = NA,
+    abs_studentized_residual = NA,
+    abs_dffits = NA,
+    outlier_studentized = NA,
+    outlier_leverage = NA,
+    outlier_cooks = NA,
+    outlier_dffits = NA,
+    outlier_any = NA,
+    outlier_all = NA,
+    check.names = FALSE
+  )
+}
+
+write_diagnostics_html(
+  vif_tbl = vif_tbl,
+  bp_tbl = bp_tbl,
+  diagnostic_tbl = diagnostic_data_m2,
+  influence_tbl = diagnostic_influence_m2,
+  outlier_summary_tbl = outlier_diagnostics_m2$summary_tbl,
+  flagged_outliers_tbl = flagged_outliers_m2,
+  title = "M2 Diagnostics Table",
+  out = file.path(output_dir, "selection_model_m2_diagnostics.html")
+)
+
+influence_plot_data_m2 <- outlier_diagnostics_m2$diagnostics_tbl %>%
+  mutate(
+    point_label = ifelse(outlier_all, paste(entity, year, sep = "-"), ""),
+    outlier_label = ifelse(outlier_any, "TRUE", "FALSE")
+  )
+
+influence_plot_m2 <- influence_plot_data_m2 %>%
+  ggplot(aes(x = abs_dffits, y = leverage, color = outlier_label)) +
+  geom_point(alpha = 0.75, size = 2.2) +
+  geom_vline(
+    xintercept = outlier_diagnostics_m2$dffits_cutoff,
+    linetype = "dashed",
+    color = "red",
+    linewidth = 0.8
+  ) +
+  geom_hline(
+    yintercept = outlier_diagnostics_m2$leverage_cutoff,
+    linetype = "dashed",
+    color = "blue",
+    linewidth = 0.8
+  ) +
+  geom_text(
+    data = subset(influence_plot_data_m2, outlier_all),
+    aes(label = point_label),
+    size = 3,
+    vjust = -0.6,
+    check_overlap = TRUE,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(values = c("FALSE" = "black", "TRUE" = "red")) +
+  labs(
+    title = "Influence Diagnostics: Leverage vs |DFFITS| (M2)",
+    subtitle = "Outlier screening for the controlled panel model; dashed lines mark thresholds.",
+    x = "|DFFITS|",
+    y = "Leverage",
+    color = "Outlier",
+    caption = str_wrap(
+      paste(
+        "Points are flagged as outliers when any threshold is exceeded",
+        "(studentized residual, leverage, Cook's D, or |DFFITS|).",
+        "Labels mark observations exceeding all thresholds."
+      ),
+      width = 110
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 11),
+    legend.position = "right"
+  ) +
+  caption_theme
+
+ggsave(
+  filename = file.path(output_dir, "selection_model_influence_diagnostics_m2.png"),
+  plot = influence_plot_m2,
+  width = 10,
+  height = 7,
+  dpi = 300
 )
 
 residual_fitted_plot <- diagnostic_data_m2 %>%
@@ -847,6 +1152,64 @@ write.csv(
   row.names = FALSE
 )
 
+panel_bp_text <- paste(
+  c(
+  paste0("M1 p = ", format_p_value(bp_tbl$p_value[bp_tbl$model == "M1_bivariate"])),
+  paste0("M2 p = ", format_p_value(bp_tbl$p_value[bp_tbl$model == "M2_controls"])),
+  paste0("M3 p = ", format_p_value(bp_tbl$p_value[bp_tbl$model == "M3_country_year_FE"]))
+  ),
+  collapse = "; "
+)
+
+panel_max_vif <- max(vif_tbl$vif, na.rm = TRUE)
+
+gauss_markov_tbl <- data.frame(
+  Assumption = c(
+    "Linearity in parameters",
+    "Independent sampling / errors",
+    "No perfect multicollinearity",
+    "Zero conditional mean",
+    "Homoskedasticity"
+  ),
+  `Evidence in this project` = c(
+    "Residuals-vs-fitted plot is produced for M2 and the dependent variable is log(1 + aid).",
+    "Country-years repeat within countries; M3 adds country and year fixed effects with SE clustered by country.",
+    paste0("VIF check on M2 controls; max VIF = ", sprintf("%.2f", panel_max_vif), "."),
+    "Not directly testable; M2 adds observed controls and M3 absorbs country and year effects.",
+    paste0("Breusch-Pagan results: ", panel_bp_text, ".")
+  ),
+  Summary = c(
+    "Specification is linear in coefficients, but functional form still depends on visual inspection.",
+    "IID errors are not plausible in the raw panel.",
+    ifelse(
+      panel_max_vif < 5,
+      "No strong multicollinearity signal among included controls.",
+      "Some multicollinearity risk remains in the control set."
+    ),
+    "This remains a substantive identification assumption rather than something verified statistically.",
+    ifelse(
+      any(bp_tbl$p_value < 0.05, na.rm = TRUE),
+      "Homoskedasticity is rejected in at least one panel model.",
+      "No strong BP evidence against homoskedasticity."
+    )
+  ),
+  `Inference note` = c(
+    "Linear OLS remains a reasonable memo baseline, but nonlinear misspecification cannot be ruled out.",
+    "Use the clustered-SE fixed-effects model for the most defensible panel inference.",
+    "Coefficients are separately estimable without obvious collinearity failure.",
+    "Interpret coefficients as conditional associations, not clean causal effects.",
+    "Rely on HC1 or country-clustered SE instead of classical OLS SE."
+  ),
+  check.names = FALSE
+)
+
+write_simple_html_table(
+  gauss_markov_tbl,
+  title = "Gauss-Markov Assumption Summary",
+  subtitle = "Concise diagnostic summary for the panel aid-allocation models.",
+  out = file.path(output_dir, "selection_model_gauss_markov_summary.html")
+)
+
 cat("Done. Outputs written to:", normalizePath(output_dir), "\n")
 cat("Main files:\n")
 cat("- selection_model_panel.csv\n")
@@ -869,4 +1232,7 @@ cat("- selection_model_latest_regime_family_pie.png\n")
 cat("- selection_model_residuals_vs_fitted_m2.png\n")
 cat("- selection_model_qqplot_m2.png\n")
 cat("- selection_model_cooks_distance_m2.png\n")
+cat("- selection_model_influence_diagnostics_m2.png\n")
 cat("- selection_model_vif.csv\n")
+cat("- selection_model_gauss_markov_summary.html\n")
+cat("- selection_model_m2_diagnostics.html\n")

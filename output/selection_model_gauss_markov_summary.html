@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Gauss-Markov Assumption Summary</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #1f2933; }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    .subtitle { margin-top: 0; margin-bottom: 18px; color: #52606d; max-width: 900px; }
+    table { border-collapse: collapse; width: 100%; max-width: 1100px; }
+    th, td { border: 1px solid #d9e2ec; padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: #f0f4f8; font-weight: 700; }
+    tr:nth-child(even) { background: #f8fafc; }
+  </style>
+</head>
+<body>
+  <h1>Gauss-Markov Assumption Summary</h1>
+  <p class="subtitle">Concise diagnostic summary for the panel aid-allocation models.</p>
+  <table>
+    <thead><tr><th>Assumption</th><th>Evidence in this project</th><th>Summary</th><th>Inference note</th></tr></thead>
+    <tbody><tr><td>Linearity in parameters</td><td>Residuals-vs-fitted plot is produced for M2 and the dependent variable is log(1 + aid).</td><td>Specification is linear in coefficients, but functional form still depends on visual inspection.</td><td>Linear OLS remains a reasonable memo baseline, but nonlinear misspecification cannot be ruled out.</td></tr><tr><td>Independent sampling / errors</td><td>Country-years repeat within countries; M3 adds country and year fixed effects with SE clustered by country.</td><td>IID errors are not plausible in the raw panel.</td><td>Use the clustered-SE fixed-effects model for the most defensible panel inference.</td></tr><tr><td>No perfect multicollinearity</td><td>VIF check on M2 controls; max VIF = 5.45.</td><td>Some multicollinearity risk remains in the control set.</td><td>Coefficients are separately estimable without obvious collinearity failure.</td></tr><tr><td>Zero conditional mean</td><td>Not directly testable; M2 adds observed controls and M3 absorbs country and year effects.</td><td>This remains a substantive identification assumption rather than something verified statistically.</td><td>Interpret coefficients as conditional associations, not clean causal effects.</td></tr><tr><td>Homoskedasticity</td><td>Breusch-Pagan results: M1 p = &lt; 0.001; M2 p = &lt; 0.001; M3 p = &lt; 0.001.</td><td>Homoskedasticity is rejected in at least one panel model.</td><td>Rely on HC1 or country-clustered SE instead of classical OLS SE.</td></tr></tbody>
+  </table>
+</body>
+</html>
